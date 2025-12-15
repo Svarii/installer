@@ -1,0 +1,40 @@
+import_code("/lib/cobra.so")
+
+force_params(program_name + " [serviceName] [#toFind]", 2)
+//Find a service
+randomIP = "0.0.0.0"
+numberFound = 0
+aptClient = load_lib("aptclient.so")
+myShell = get_shell
+serviceName = params[0]
+
+while numberFound < to_int(params[1])
+    while is_valid_ip(randomIP) == false or myShell.ping(randomIP) == false
+        print "[*] Generating random address: " + randomIP
+        randomIP = get_random_ip
+    end while
+    print("[*] Found resposive ip at " + randomIP, false)
+    print("[*] Found " + numberFound + " " + serviceName + " locations", false)
+    randomRouter = get_router(randomIP)
+    randomRouter_UsedPorts = randomRouter.used_ports
+    for port in randomRouter_UsedPorts
+        randomRouterPortInfo = randomRouter.port_info(port)
+        if not randomRouterPortInfo.indexOf(serviceName) == null then
+            if params[0] == "repository" then
+                print("[*] Repository Located", false)
+                print("[*] Checking Port Status", false)
+                if not port.is_closed == true then
+                    print("[*] Port is Open", false)
+                    aptClient.add_repo(randomIP)
+                    numberFound = numberFound + 1
+                    print("[*] Repository Added to sources.txt", false)
+                else
+                    print("[*] Port is Closed", false)
+                    print("[*] Looking for new repo", false)
+                end if
+            end if
+        end if
+        randomIP = get_random_ip
+    end for
+    randomIP = get_random_ip
+end while
