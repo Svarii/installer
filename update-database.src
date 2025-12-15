@@ -1,0 +1,179 @@
+//***********************************
+// Prototype Functions
+//***********************************
+    //***********************************
+    // prepare_output
+    //***********************************
+        prepare_output = function(outputBufferList)
+            for output in locals.outputBufferList
+                if locals.replaceText == false then
+                    globals.outputBuffer.push(locals.output)
+                end if
+            end for
+        end function
+    //***********************************
+    // process_output
+    //***********************************
+        process_output = function(outputList, replaceText = false)
+            for output in locals.outputList
+                if locals.replaceText == false then
+                    print(locals.output)
+                else
+                    print(locals.output, true)
+                end if
+            wait(0.1)
+            end for
+            globals.outputBuffer = []
+        end function
+    //***********************************
+    // info_string
+    //      requires
+    //          -.color
+    //          -.pos    
+    //***********************************        
+        info_string = function(starColor = "SmokeWhite", infoString, textColor = "white")
+            return "[" + "*".color(locals.starColor) + "] " + infoString.color(locals.textColor)
+        end function
+//***********************************
+// Import Custom Code
+//***********************************
+    import_code("/lib/cobra.so")
+
+//***********************************    
+// Declare Variables
+//***********************************
+    alwaysUpdate = "true"
+    outputBuffer = []
+    deleteTodo = []
+    myShell = get_shell
+    myComputer = myShell.host_computer
+    knownLibs = ["aptclient.so", "blockchain.so", "init.so", "kernel_module.so", "kernel_router.so", "libadb.so", "libcam.so", "libchat.so", "libftp.so", "libhttp.so", "librepository.so", "libsmartappliance.so", "libsmtp.so", "libsql.so", "libssh.so", "libtrafficnet.so", "net.so", "crypto.so", "metaxploit.so", "librshell.so"]
+    seperatorDeco = "*"*30
+//***********************************
+// Force Paramaters
+//***********************************    
+    //Do Not Force Params
+
+//***********************************    
+// Create Database
+//***********************************
+    //Check for existing database in use home folder and load names into versionFileList as libnames (the folder name, no .so extension)
+        databaseRootFolderLocation = home_dir + "/Database"
+        databaseRootFolder = myComputer.File(databaseRootFolderLocation)
+        if is_folder(databaseRootFolder) then
+            outputBuffer.push(info_string("Yellow", "Database Detected".bold, "DeepPink"))
+            outputBuffer.push((info_string("Silver", "Haulting installer", "DarkOrchid")))
+        else
+            outputBuffer.push((info_string("Yellow", "Database folder not found", "WhiteSmoke")))
+            outputBuffer.push((info_string("Silver", "Creating Database folder", "WhiteSmoke")))   
+            //Reload Database Root Folder
+                if not create_folder(myComputer, home_dir, "Database") then
+                    exit("Failed to create database folder".color("Red"))
+                else
+                    outputBuffer.push((info_string("Chartreuse", "Database folder created successfully", "WhiteSmoke")))
+                    for libFileName in knownLibs
+                        outputBuffer.push((info_string("Silver", "Creating database folder for " + libFileName, "WhiteSmoke")))
+                        if not create_folder(myComputer, home_dir + "/Database", libFileName.remove(".so")) then
+                            exit("Failed to create lib database folder".color("Red"))
+                        else
+                            outputBuffer.push((info_string("Chartreuse", "Library data folder created successfully", "WhiteSmoke")))
+                        end if
+                    end for
+                end if
+        end if
+        process_output(outputBuffer) //print text and clear outputBuffer
+
+        
+
+        
+        libDeleteList = []
+        outputBuffer.push(info_string("Yellow", "Scanning /lib Directory", "WhiteSmoke"))
+        for libFileName in knownLibs
+            outputBuffer.push(info_string("Yellow", "Searching /lib Directory for " + libFileName, "WhiteSmoke"))
+            libFile = myComputer.File("/lib/" + libFileName)
+            if libFile == null then
+                libDeleteList.push(libFileName)
+                outputBuffer.push(info_string("Red", (libFileName + " not found"), "WhiteSmoke"))
+                outputBuffer.push(info_string("Yellow", "Downloading " + libFileName, "WhiteSmoke"))
+                for output in outputBuffer
+                    print output
+                    wait(0.1)
+                end for
+                outputBuffer = []            
+                aptClient = load_lib("aptclient.so", "/lib", "aptclientLib")
+                if not aptClient == null then
+                    downloadResult = 0
+                    while downloadResult == false
+                        downloadResult = aptClient.install(libFileName)
+                        aptClient.update
+                        if downloadResult == 1 then 
+                            outputBuffer.push(info_string("LimeGreen", libFileName + " download successful", "WhiteSmoke"))
+                            deleteTodo.push(libFileName)
+                        else
+                            outputBuffer.push(info_string("Red", libFileName + " download failed", "WhiteSmoke"))
+                            for output in outputBuffer
+                                print output
+                                wait(0.1)
+                            end for
+                            outputBuffer = []
+                            repoFound = false
+
+                            while repoFound == false
+                                myShell.launch("/bin/find-service", "repository 1")
+                                downloadResult = aptClient.install(libFileName)
+                                aptClient.update
+                                if not aptClient.search(libFileName) then
+                                    outputBuffer.push(info_string("Red", libFileName + ".so not found in repo", "WhiteSmoke"))
+                                    outputBuffer.push(info_string("Yellow", "Updating sources.txt", "WhiteSmoke"))
+                                else
+                                    repoFound = true
+                                    outputBuffer.push(info_string("LimeGreen", "Hackshop found, downloading " + libFileName, "WhiteSmoke"))
+                                    downloadResult = aptClient.install(libFileName)
+                                end if
+                            end while
+                            if downloadResult == 1 then 
+                                outputBuffer.push(info_string("LimeGreen", libFileName + " download successful", "WhiteSmoke"))
+                            else
+                                outputBuffer.push(info_string("Red", libFileName + " download failed", "WhiteSmoke"))
+                                downloadResult = aptClient.install(libFileName)
+                                aptClient.update
+                            end if                            
+                        end if
+                    end while
+                else
+                    outputBuffer.push(info_string("Maroon", libFileName + " apt client failed to load, can not download", "WhiteSmoke"))
+                end if
+            else
+                outputBuffer.push(info_string("LimeGreen", "Found " + libFileName + " in /lib Directory", "WhiteSmoke"))
+            end if
+            process_output(outputBuffer)        
+        end for
+
+
+
+    process_output(outputBuffer)
+    
+
+    libFileList = myComputer.File("/lib").get_files
+    if alwaysUpdate == "true" then
+        for libFileObject in libFileList
+            outputBuffer.push(info_string("DeepPink", "Starting Foundation Scan in /lib Directory", "WhiteSmoke"))
+            outputBuffer.push(info_string("Magenta", "Running exploit scan on " + libFileObject.name + " in /lib Directory", "WhiteSmoke"))
+            scanParams = home_dir + "/Database /lib " + libFileObject.name
+            //print scanParams.color("Fuchsia").bold
+            get_shell().launch("/bin/research-payload", scanParams)
+        end for
+        //Delete downloaded libs
+        for cachedLib in deleteTodo
+            outputBuffer.push(info_string("Yellow", "Attempting to delete downloaded " + libFileObject.name + " in /lib Directory", "WhiteSmoke"))
+            myComputer.File("/lib/" + cachedLib).delete
+        end for
+    else
+        //Delete downloaded libs
+        for cachedLib in deleteTodo
+            outputBuffer.push(info_string("Yellow", "Attempting to delete downloaded " + libFileObject.name + " in /lib Directory", "Whitesmoke"))
+            myComputer.File("/lib/" + cachedLib).delete
+        end for        
+        //TODO: Start Program Here
+    end if
+    wait(0.1)        
