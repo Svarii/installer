@@ -1,0 +1,238 @@
+// Extracts list of top-level attributes from object
+	// @description **Description:**
+	// @description Iterate though the __isa of a list and create a list of key names
+	// @description ---
+	//
+	// @description **Parameters:**
+	// @description - none
+	//
+	// @description **Return:**
+	// @return {list<string>}
+	// @description `list<string>` List attributes for the object
+	// @description ---
+	//
+	// @description **Author:** Svarii
+	// @description **Version:** 0.0.1
+	// @description ---
+	//     
+	// @description ***footnotes***   
+	// @description This method only returns top-level attributes   
+	// @description ---
+	//
+	// @example myObject = {"classID":"myObject","myVar":"some Value"};
+	// @example result = myObject.get_attributes
+	// @example
+	// print(result); // Output: ["myObject":"myVar", "myVar":"some Value"]
+	// @description ---
+map.get_attributes = function()
+	locals.attributeList = []
+	for param in self["__isa"]
+		locals.attributeList.push(locals.param.key)
+	end for	
+	return locals.attributeList
+end function
+
+// Applies size tag to the string
+    // @description **Description:**
+    // @description Modifies a text string by wrapping it within the `<size>` tag
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @description * `textSize`:`string`
+    //
+    // @description **Default Parameters:**
+    // @description * `textSize`:`"5em"`
+    //
+    // @description **Return:**
+    // @return {string}
+    // @description `string` The string wrapped within the `<size>` tag
+    // @description ---
+    //
+    // @description **Links:**
+    // @description - [Text Mesh Pro: Font Size](https://docs.unity3d.com/Packages/com.unity.textmeshpro@4.0/manual/RichTextSize.html)	
+    // @description ---	
+    //
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---
+    //
+    //  @example newString = "Hello"
+    //  @example 
+    //  @example result = newString.size
+    //  @example 
+    //  print(result); // Output: <size="5em">Hello </size>
+string.size = function(textSize = "5em")
+    return "<size=" + locals.textSize + ">" + self + "</size>"
+end function
+import_code("/lib/cobra.so")
+//*****************************************************************
+//Set usage string*************************************************
+    usageInfo = "<u>Usage: </u>" + char(10) + char(09) + "<b>" + program_name + "</b> [<i>databaseDirPath</i>] [<i>libDirectory</i>] [<i>libFilename</i>]" + char(10) + "<u>Example: </u>" + char(10) + active_user + "@" + get_shell.host_computer.get_name + ":~$ " + program_name + " /home/username/Database /lib aptclient.so"
+//Check for Required Params****************************************
+    force_params(usageInfo, 3)
+//Set Lib dir from params******************************************
+    databaseDir = params[0]
+    libDir = params[1]        
+    libName = params[2]
+    libLocation = params[1] + "/" + params[2]
+//Load computer object*********************************************
+    myShell = get_shell
+    myComputer = myShell.host_computer
+//Get list of libs names in lib dir********************************
+    libDirFiles = myComputer.File(libDir).get_files
+//Load metaxploit**************************************************
+	metaxLibType = "MetaxploitLib"
+    metax = load_lib("metaxploit.so", "/lib", metaxLibType)
+    if not typeof(metax) == metaxLibType then
+        exit("[" + "*".color("Red") + "] " + "Critical Error: Failed to load Metaxploit".color("Crimson"))
+    else
+        print(("[" + "*".color("LimeGreen") + "] " + "Metaxploit loaded").color("WhiteSmoke"))
+    end if
+
+
+
+//Check for Database folder****************************************
+    database = myComputer.File(databaseDir)
+    databaseFolder = slice(databaseDir, databaseDir.lastIndexOf("/") + 1)
+    databaseFolderParentPath = slice(databaseDir, 0, databaseDir.lastIndexOf("/"))    
+    if not is_folder(database) then
+        print(("[" + "*".color("Red") + "] " + "Database folder not found").color("WhiteSmoke"))
+        print(("[" + "*".color("Yellow") + "] " + "Creating folder at " + databaseFolderParentPath + "/" + databaseFolder).color("WhiteSmoke"))
+        myComputer.create_folder(databaseFolderParentPath, databaseFolder)
+        databaseFolder = myComputer.File(databaseDir)
+        if not is_folder(databaseFolder) then
+            print("[" + "*".color("Red") + "] " + ("Failed to created directory").color("WhiteSmoke"))
+        else
+            print("[" + "*".color("LimeGreen") + "] " + ("Directory created successfully at " + databaseFolderParentPath + "/" + databaseFolder).color("WhiteSmoke"))
+        end if
+    else
+        print ("[" + "*".color("LimeGreen") + "] " + ("Database directory located at " + databaseFolderParentPath + "/" + databaseFolder)).color("WhiteSmoke")
+    end if
+
+
+
+//Load specified lib into memory************************************
+    metaLib = metax.load(libLocation)
+    if is_typeof(metaLib, "MetaLib") == true then
+        metaLibName = slice(metaLib.lib_name, 0, (metaLib.lib_name).lastIndexOf("."))
+        metaLibVersion = metaLib.version
+        metaLibPatch = metaLib.is_patched        
+    else
+        metaLibName = slice(databaseFolderParentPath, 0, databaseFolderParentPath.lastIndexOf("/")) 
+        metaLibVersion = slice(databaseDir, databaseDir.lastIndexOf("/") + 1, databaseDir.len - 1) 
+        metaLibPatch = 0
+    end if
+
+//Check for lib folder in database folder***************************
+    libDatabaseFolder = myComputer.File(databaseDir + "/" + metaLibName)
+    if not is_folder(libDatabaseFolder) then
+        print("[" + "*".color("Red") + "] " + ("Library Database folder not found").color("WhiteSmoke"))
+        print("[" + "*".color("Yellow") + "] " + ("Creating folder at " + databaseDir + "/" + metaLibName).color("WhiteSmoke"))
+        myComputer.create_folder(databaseDir, metaLibName)
+        libDatabaseFolder = myComputer.File(databaseDir + "/" + metaLibName)
+        if not is_folder(libDatabaseFolder) then
+            print("[" + "*".color("Red") + "] "  + ("Failed to created directory").color("WhiteSmoke"))
+        else
+            print("[" + "*".color("LimeGreen") + "] " + ("Directory created successfully at " + databaseDir + "/" + metaLibName).color("WhiteSmoke"))
+        end if
+    else
+        print ("[" + "*".color("LimeGreen") + "] " + ("Lib database directory located at " + databaseDir + "/" + metaLibName).color("WhiteSmoke"))
+    end if
+
+    exploitFile = null
+    exploitFile = databaseDir + "/" + libDatabaseFolder.name + "/" + metaLibVersion    
+
+//Check for exploit version file*************************************
+    exploitFileLocation = databaseDir + "/" + metaLibName + "/" + metaLibVersion
+    exploitFile = myComputer.File(exploitFileLocation)
+    if not is_typeof(exploitFile, "file") then
+    //if not typeof(exploitFile) == "file" then
+        print("[" + "*".color("Yellow") + "] " + "Failed to load exploit file".color("LightSkyBlue") + " at " + databaseDir + "/" + metaLibName + "/" + metaLibVersion)
+        print("[" + "*".color("Yellow") + "] " + "Creating File".color("Yellow"))
+        myComputer.touch(databaseDir + "/" + metaLibName, metaLib.version)
+        exploitFile = myComputer.File(libDatabaseFolder + "/" + metaLibVersion)
+        if file_exists(exploitFile) then
+            print("[" + "*".color("LimeGreen") + "] " + ("Exploits file created").color("WhiteSmoke"))
+        else
+            exit("[" + "*".color("Red") + "] " + ("Failed to create exploit file").color("WhiteSmoke"))
+        end if
+    else
+        print ("[" + "*".color("LimeGreen") + "] " + ("Database file located at " + databaseDir + "/" + libDatabaseFolder.name + "/" + metaLibVersion)).color("WhiteSmoke")
+    end if
+
+//Check if lib name + version has local exploit file*******************
+
+    if exploitFile == null then
+        print "[" + "*".color("Red") + "] " + "Database file not found".color("WhiteSmoke")
+        haveFile = false
+    else
+        print "[" + "*".color("LimeGreen") + "] " + "Database file found".color("WhiteSmoke")
+        haveFile = true
+    end if
+
+//Scan for Exploit Address Locations    
+    if haveFile == false then
+        exploitAddresses = find_exploitable_addresses(libLocation,  metax)
+        if exploitAddresses.len > 0 then
+            print( "[*] " + str(exploitAddresses.len).bold.color("MediumSpringGreen") + " Vulnerable Addresses Found")
+        else
+            print("[*] No Vectors Found".color("Red"))
+        end if
+    reqList = fetch_exploit_requirements(exploitAddresses, libLocation, metax)
+        outputList = []
+        for expReq in reqList
+            overflowResult = metaLib.overflow(expReq.address, expReq.variable)
+            if is_typeof(overflowResult, "computer") then
+            //if typeof(overflowResult) == "computer" then
+                print "[*] <b>computer</b> object is owned by : "	+	get_object_owner(overflowResult)
+                homeFolders = overflowResult.File("/home").get_folders
+                for userDir in homeFolders
+                    print userDir.name.color("Orange")
+                end for
+            end if
+
+            if is_typeof(overflowResult, "file") then
+            //if typeof(overflowResult) == "file" then
+                print "[*] file object permission level : "	+	overflowResult.owner
+                print (overflowResult.name).color("Yellow")
+            end if
+            if is_typeof(overflowResult, "shell") then
+			//if typeof(overflowResult) == "shell" then
+				//print overflowResult.host_computer.File("/etc/passwd").get_content
+                //TODO Save passwordhash
+                //NEXT: Auto Hack / Objective??
+                //NOTE: No This app is for research phase, not attack phase.
+			end if
+            overflowOwner = get_object_owner(overflowResult, false)
+            if not overflowOwner then overflowOwner = "null"
+            outputData = (expReq.lib_name + "," + expReq.version + "," + expReq.is_patched + "," + expReq.address + "," + expReq.variable + "," +  expReq.cra + "," +  expReq.cua + "," +  expReq.cga + "," +  expReq.rur + "," +  expReq.rpf + "," + typeof(overflowResult) + "," + overflowOwner + char(10))
+            file_append(params[0] + "/" + metaLibName, metaLibVersion, outputData)
+        end for
+    else
+        //Load exploit database for specified lib
+        print "[" + "*".color("Yellow") + "] " + "Loading file from " + exploitFile.path
+        exploitDataString = exploitFile.get_content
+        exploitDataList = (split(exploitDataString, char(10))).crop
+        reqList = []
+        
+
+        for exploit in exploitDataList
+            exploitInfo = split(exploit, ",")
+            exploitObject = {"classID": "exploitRequirments", "metaLibName":exploitInfo[0], "version":exploitInfo[1], "is_patched":to_int(exploitInfo[2]), "address":exploitInfo[3], "variable":to_int(exploitInfo[4]), "cra":to_int(exploitInfo[5]), "cga":to_int(exploitInfo[6]), "cua":to_int(exploitInfo[7]), "rur":to_int(exploitInfo[8]), "rpf":to_int(exploitInfo[9]), "objectType":exploitInfo[10], "privs":exploitInfo[11]}
+            reqList.push(exploitObject)
+        end for
+    end if
+    print(("Lib Name" + "Version".pos("8em") + "Variable".pos("14em") + "Address".pos("25em") +  "AR".pos("35em") + "AU".pos("40em") + "AG".pos("45em") + "PF".pos("50em") + "UR".pos("55em") + "Type".pos("60em") + "Privs".pos("65em")).color("WhiteSmoke").underline)
+    for exploitFound in reqList
+        if haveFile == true then
+            print "[" + "*".color("DodgerBlue") + "] " + metaLibName.remove("lib").remove("sitory").remove("appliance").replace("trafficnet", "traffic").replace("metaxploit", "metax").replace("blockchain", "block").replace("kernel_", "ker_") + (exploitFound.version).pos("8em") + (exploitFound.variable).size("65%").pos("14em") + (exploitFound.address).size("65%").pos("25em") + (bool_text(exploitFound.cra, ["true", "false"], ["red","green"])).pos("35em") + (bool_text(exploitFound.cua, ["true", "false"], ["red","green"])).pos("40em") + (bool_text(exploitFound.cga, ["true", "false"], ["red","green"])).pos("45em") + (str(exploitFound.rpf)).pos("50em") + (str(exploitFound.rur)).pos("55em") + (exploitFound.objectType).pos("60em") + (exploitFound.privs).pos("65em")
+        else
+            print "[" + "*".color("DodgerBlue") + "] " + metaLibName + (exploitFound.version).pos("8em") + (exploitFound.variable).size("65%").pos("14em") + (exploitFound.address).size("65%").pos("25em") + (bool_text(exploitFound.cra, ["true", "false"], ["red","green"])).pos("35em") + (bool_text(exploitFound.cua, ["true", "false"], ["red","green"])).pos("40em") + (bool_text(exploitFound.cga, ["true", "false"], ["red","green"])).pos("45em") + (str(exploitFound.rpf)).pos("50em") + (str(exploitFound.rur)).pos("55em") + str(exploitFound.objectType).pos("60em") + str(exploitFound.privs).pos("65em")
+        end if
+        wait(0.1)
+        //print metaLibName.pos("1em") + exploitFound.variable + " @ " + exploitFound.address  + char(09) + "<color=white>MetaLib: ".bold + char(09) + "<color=white>Version: ".bold + exploitFound.version + char(09) + "<color=white>Patched: ".bold + bool_text(exploitFound.is_patched, ["true", "false"], ["red","green"])
+        
+        //print((bool_text(exploitFound.cra, ["true", "false"], ["red","green"])).pos("8em") + (bool_text(exploitFound.cua, ["true", "false"], ["red","green"])).pos("14em") + (bool_text(exploitFound.cga, ["true", "false"], ["red","green"])).pos("20em") + (bool_text(exploitFound.rpf, ["true", "false"], ["red","green"])).pos("26em") + (bool_text(exploitFound.rur, ["true", "false"], ["red","green"])).pos("32em"))
+    end for
+    
+print "[*] Database file located at " + (params[0] + "/" + metaLibName + "/" + metaLibVersion).color("Gold")
