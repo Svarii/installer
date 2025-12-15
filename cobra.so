@@ -1,0 +1,249 @@
+import_code("/lib/cobra.so")
+
+// Applies size tag to the string
+    // @description **Description:**
+    // @description Modifies a text string by wrapping it within the `<size>` tag
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @description * `textSize`:`string`
+    //
+    // @description **Default Parameters:**
+    // @description * `textSize`:`"5em"`
+    //
+    // @description **Return:**
+    // @return {string}
+    // @description `string` The string wrapped within the `<size>` tag
+    // @description ---
+    //
+    // @description **Links:**
+    // @description - [Text Mesh Pro: Font Size](https://docs.unity3d.com/Packages/com.unity.textmeshpro@4.0/manual/RichTextSize.html)	
+    // @description ---	
+    //
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---
+    //
+    //  @example newString = "Hello"
+    //  @example 
+    //  @example result = newString.size
+    //  @example 
+    //  print(result); // Output: <size="5em">Hello </size>
+string.size = function(textSize = "5em")
+    return "<size=" + locals.textSize + ">" + self + "</size>"
+end function
+
+bool_color = function(outputString, boolVar = false, boolColor = ["green", "red"])
+    if locals.boolVar == true then
+        return locals.outputString.color(boolColor[1])
+    else
+        return locals.outputString.color(boolColor[0])
+    end if
+end function
+
+lan_scan = function(targetLanIP)
+    locals.targetRouter = get_router(locals.targetLanIP)
+    print info_string("Silver", "Network Scan".underline, "DeepPink")
+    locals.lanScan = locals.targetRouter.devices_lan_ip
+    for lanComputer in locals.lanScan
+        locals.ipColor = "HotPink"
+        locals.localIPTargetMatchFound = false
+        if locals.lanComputer == locals.targetLanIP then
+            locals.ipColor = "MediumSpringGreen"
+            locals.localIPTargetMatchFound
+        end if
+            //if ipColor == "MediumSpringGreen" then
+                locals.targetLanIPDevicePorts = locals.targetRouter.device_ports(locals.lanComputer)
+                //usedLanPortObjectList = []
+                locals.usedLanNumberPortList = []
+                locals.usedLanServiceList = []
+                for usedLanPort in locals.targetLanIPDevicePorts
+                    
+                    locals.usedLanNumberPortList.push(locals.usedLanPort.port_number)
+                    locals.usedLanServiceList.push(locals.targetRouter.get_port_info(locals.usedLanPort.port_number))
+                end for        
+                print char(09) + info_string("Silver", str(locals.lanComputer), ipColor) + " "*(15 - locals.lanComputer.len) + char(09) + info_string("Silver", str(locals.usedLanNumberPortList)) + " "*(30 - str(locals.usedLanNumberPortList).len) + info_string("Silver", str(locals.usedLanServiceList))
+            //end if            
+    end for   
+end function
+
+translate_serviceInfo = function(serviceInfoName)
+    if locals.serviceInfoName == "http" then return "libhttp"
+    if locals.serviceInfoName == "ftp" then return "libftp"
+    if locals.serviceInfoName == "smtp" then return "libsmtp"
+    if locals.serviceInfoName == "ssh" then return "libssh"
+    if locals.serviceInfoName == "rshell" then return "librshell"
+    if locals.serviceInfoName == "cam" then return "libcam"
+    if locals.serviceInfoName == "ssh" then return "libssh"
+    if locals.serviceInfoName == "trafficnet" then return "libtrafficnet"
+    if locals.serviceInfoName == "sql" then return "libsql"
+    if locals.serviceInfoName == "chat" then return "libchat"
+    if locals.serviceInfoName == "repository" then return "librepository"
+    if locals.serviceInfoName == "smartappliance" then return "libsmartappliance"
+    if locals.serviceInfoName == "bank_account" then return "libssh"
+    if locals.serviceInfoName == "criminal" then return "libssh"
+    if locals.serviceInfoName == "employees" then return "libssh"
+    if locals.serviceInfoName == "students" then return "libssh"
+    return serviceInfoName
+end function
+
+clear_screen
+
+//******************************************        
+//Load variables and objects
+        knownLibs = ["aptclient.so", "blockchain.so", "init.so", "kernel_module.so", "kernel_router.so", "libadb.so", "libcam.so", "libchat.so", "libftp.so", "libhttp.so", "librepository.so", "libsmartappliance.so", "libsmtp.so", "libsql.so", "libssh.so", "libtrafficnet.so", "net.so", "crypto.so", "metaxploit.so", "librshell.so"]
+    //Load Shell
+        myShell = get_shell
+    //Load Computer
+        myComputer = myShell.host_computer
+    //Holds the string for manipulations 
+        outputBuffer = []
+    //Holds finalized strings awaiting print
+        outputStaging = []
+        targetLanIP = "0.0.0.0"
+
+//******************************************    
+//Check Input Paramaters
+        if params.len < 1 then
+            param1 = myComputer.local_ip
+            targetIP = param1
+        end if
+        if params.len >= 1 then
+            param1 = params[0]
+        end if
+        if params.len >= 2 then
+            param2 = params[1]
+        end if
+        if param1 == "update-database" then
+            get_shell.launch("/opt/cobra/bin/installer")
+            exit("Database Update Complete")
+        end if
+        if is_valid_ip(param1) then
+            targetIP = param1
+            if not(myShell.ping(targetIP)) then exit(info_string("Red", "Address Unreachable: " + targetIP.pos("25em"), "Crimson"))
+            if not is_lan_ip(param1) then
+                print info_string("LawnGreen", "Target WAN IP Loaded: " + targetIP.pos("25em"), "DodgerBlue")
+                if params.len >= 2 then
+                    if is_lan_ip(param2) then
+                        targetLanIP = param2
+                        print info_string("LawnGreen", "Target LAN IP Loaded: " + targetLanIP.pos("25em"), "DodgerBlue")
+                    else
+                        print info_string("LawnGreen", "Target Public IP : " + get_router(targetLanIP).public_ip.pos("25em"), "DodgerBlue")
+                    end if
+                end if
+            else
+                targetLanIP = param1
+                if not is_valid_ip(targetLanIP) then targetLanIP = myComputer.local_ip
+                print info_string("LawnGreen", "Target Public IP : " + (get_router(myComputer.network_gateway).public_ip).pos("25em"), "DodgerBlue")
+                print info_string("LawnGreen", "Target LAN IP Loaded: " + targetLanIP.pos("25em"), "DodgerBlue")
+            end if
+        else
+            exit(info_string("Red", "Target IP is invalid: " + param1.pos("25em"), "Crimson"))
+        end if      
+
+
+ 
+
+portNumberList = []
+closedPortNumberList = []
+
+if not targetIP then targetIP = targetLanIP
+
+if not is_lan_ip(targetIP) then
+    targetRouter = get_router(targetIP)
+    for port in targetRouter.used_ports
+        if not port.is_closed then
+            portNumberList.push((port.port_number))
+        else
+            closedPortNumberList.push((port.port_number))
+        end if
+    end for    
+    if is_typeof(targetRouter, "router") then
+        print info_string("LawnGreen", "Target Router Loaded: " + (targetRouter.essid_name).pos("25em"), "DodgerBlue")
+        print info_string("LawnGreen", "Target Router Version: " + bool_color((targetRouter.kernel_version), (myComputer.File(home_dir + "/Database/kernel_router").get_files).hasIndex(targetRouter.kernel_version), ["MediumSpringGreen", "Crimson"]).pos("25em"))
+        if targetRouter.firewall_rules.len > 0 then
+            print info_string("Yellow", "Router Firewall Rules: " + str(targetRouter.firewall_rules).pos("25em"), "DodgerBlue")
+        else
+            print info_string("LawnGreen", "Router Firewall Rules: " + "None".pos("25em"), "LimeGreen")
+        end if
+        print info_string("LawnGreen", "Open Port List: " + str(portNumberList).pos("25em"), "DodgerBlue")
+        if closedPortNumberList.len > 0 then
+            print info_string("Red", "Closed Port List: " + str(closedPortNumberList).pos("25em"), "Crimson")
+        else
+            print info_string("LawnGreen", "Closed Ports: " + "None".pos("25em"), "LimeGreen")
+        end if
+    end if
+else
+    targetRouter = get_router()
+    for port in targetRouter.used_ports
+        if not port.is_closed == true then
+            portNumberList.push((port.port_number))
+        else
+            closedPortNumberList.push((port.port_number))            
+        end if
+    end for
+    if is_typeof(targetRouter, "router") then
+        print info_string("LawnGreen", "Local Router Loaded:  " + (targetRouter.essid_name).pos("25em"), "DodgerBlue")
+        print info_string("LawnGreen", "Target Router Version: " + (targetRouter.kernel_version).pos("25em"), "DodgerBlue")
+        if targetRouter.firewall_rules.len > 0 then
+            print info_string("Yellow", "Router Firewall Rules: " + str(targetRouter.firewall_rules).pos("25em"), "DodgerBlue")
+        else
+            print info_string("LawnGreen", "Router Firewall Rules: " + "None".pos("25em"), "LawnGreen")
+        end if
+        print info_string("LawnGreen", "Open Port List: " + str(portNumberList).pos("25em"), "DodgerBlue")
+        print info_string("Red", "Closed Port List: " + str(closedPortNumberList).pos("25em"), "Crimson")
+    end if
+    //check permission level
+    //if guest look for password file
+    //if user look for password files
+    //look for libs with version not in database and scan for exploits, make new exploit files, send exploit file home
+    //if root, add repo, install decipher, remove repo, decipher passwd, save password, remove decipher, do mission, corrupt logs, disconnect
+end if
+
+
+
+
+for portNumber in portNumberList
+    print info_string("Chartreuse", "Open Service on Port: " + str(portNumber) + targetRouter.get_port_info(portNumber).pos("25em"), "LimeGreen")
+    serviceInfo = split(targetRouter.get_port_info(portNumber), " ")
+    serviceDatabaseDirectoryLocation = home_dir + "/Database/" + translate_serviceInfo(serviceInfo[0])
+    serviceDatabaseDirectory = myComputer.File(serviceDatabaseDirectoryLocation)
+    if is_folder(serviceDatabaseDirectory) then
+        exploitFileVersionList = (serviceDatabaseDirectory.get_files).crop
+        if exploitFileVersionList.len > 0 then
+                infoColor = "Red"
+            for file in exploitFileVersionList
+                if file.name == serviceInfo[1] then
+                    infoColor = "LimeGreen"
+                end if
+            end for
+            print char(09)*2 + info_string(infoColor, translate_serviceInfo(serviceInfo[0]) +  " VER: " + serviceInfo[1])
+            exploitData = (split(file.get_content, char(10))).crop
+            for exploit in exploitData
+                exploitInfo = split(exploit, ",")
+                if exploitInfo[5] == "0" and exploitInfo[6] == "0" and exploitInfo[7] == "0" and exploitInfo[8] == "0" and exploitInfo[9] == "0" and exploitInfo[10] == "shell" then
+                    print char(09)*3 + exploit.color("WhiteSmoke").mark("#7CFC003C")
+                else if exploitInfo[5] == "0" and exploitInfo[6] == "0" and exploitInfo[7] == "0" and exploitInfo[8] == "0" and exploitInfo[9] == "0" and exploitInfo[10] == "computer" then
+                    print char(09)*3 + exploit.color("WhiteSmoke").mark("#00FF003C")
+                else
+                    print char(09)*3 + exploit.color("Yellow").size("50%")
+                end if
+                
+            end for
+        else
+            print char(09)*2 + info_string("Red", translate_serviceInfo(serviceInfo[0]) +  " VER: " + serviceInfo[1] + " Not Found: Try: cobra update-database")
+        end if
+    end if
+end for
+
+for portNumber in closedPortNumberList
+    print info_string("Crimson", "Closed Service on Port: " + str(portNumber) + targetRouter.get_port_info(portNumber).pos("25em"), "FireBrick")
+end for
+if not is_lan_ip(targetIP) then
+    lan_scan(targetIP)
+else
+    lan_scan(myComputer.network_gateway)
+end if
+
+              
+                        
