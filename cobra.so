@@ -1,4 +1,1494 @@
-import_code("/lib/cobra.so")
+//***********************************
+// Prototype Functions
+//***********************************
+    //***********************************
+    // prepare_output
+    //***********************************
+        prepare_output = function(outputBufferList)
+            for output in locals.outputBufferList
+                if locals.replaceText == false then
+                    globals.outputBuffer.push(locals.output)
+                end if
+            end for
+        end function
+    //***********************************
+    // process_output
+    //***********************************
+        process_output = function(outputList, replaceText = false)
+            for output in locals.outputList
+                if locals.replaceText == false then
+                    print(locals.output)
+                else
+                    print(locals.output, true)
+                end if
+            wait(0.1)
+            end for
+            globals.outputBuffer = []
+        end function
+    //***********************************
+    // info_string
+    //      requires
+    //          .color
+    //          .pos    
+    //***********************************        
+        info_string = function(starColor = "SmokeWhite", infoString, textColor = "white")
+            return "[" + "*".color(locals.starColor) + "] " + infoString.color(locals.textColor)
+        end function
+
+dir_exists = function(directoryLocationString)
+    if is_folder(get_shell.host_computer.File(locals.directoryLocationString)) then
+        return true
+    else
+        return false
+    end if
+end function
+
+mark_text = function(textToMark, boolVal = false)
+    if boolVal == true then
+        return locals.textToMark.trim.color("WhiteSmoke").mark("#7FFF002D")
+    else
+        return locals.textToMark.trim.color("Black").mark("#8000002D")
+    end if
+end function
+
+find_service = function(serviceName, aptLibLocation = "/lib/aptclient.so", amountToFind = 1)
+    randomIP = "0.0.0.0"
+    numberFound = 0
+    aptClient = include_lib(aptLibLocation)
+    myShell = get_shell
+
+    while numberFound < to_int(locals.amountToFind)
+        while is_valid_ip(randomIP) == false or myShell.ping(randomIP) == false
+            print "Generating random address: " + randomIP
+            randomIP = get_random_ip
+        end while
+        print("Found resposive ip at " + randomIP, true)
+        print("Found " + numberFound + " " + locals.serviceName + " locations", true)
+        randomRouter = get_router(randomIP)
+        randomRouter_UsedPorts = randomRouter.used_ports
+        for port in randomRouter_UsedPorts
+            randomRouterPortInfo = randomRouter.port_info(port)
+            if not randomRouterPortInfo.indexOf(locals.serviceName) == null then
+                if params[0] == "repository" then
+                    print("Repository Located",true)
+                    aptClient.add_repo(randomIP)
+                    numberFound = numberFound + 1
+                    print("Repository Added to sources.txt", true)
+                    aptClient.update
+                end if
+            end if
+            randomIP = get_random_ip
+        end for
+        randomIP = get_random_ip
+    end while
+end function
+
+// load a library with 
+    // @description **Description:**
+    // Loads a library from the lib directory, optionally specifiy directory, optionally verify type
+    // @description ---
+    // 
+    // @description **Links:**
+    // [Default type list](https://documentation.greyscript.org/#GENERAL_TYPEOF)
+    // @description ---
+    // 
+    // @description **Parameters:**
+    // @param {string} libName
+    // @param {string} [libDir]
+    // @param {string} [libType]
+    // @description - `libName` (**string**): The file name of the library to scan.
+    // @description - `libDir` (**string**, *optional*): The directory where the library is located.
+    // @description - `libType` (**string**, *optional*): The expected type of the library.
+    //
+    // @description **Return:** `objectLibrary` | `null`
+    // @return {objectLibrary | null}
+    // @return {objectLibrary} 
+    // @description ---   
+    // 
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---    
+    //
+    // @description *footnotes*
+    // @description * `libName` must be full filename including extension
+    // @description * `libDir` should not have trailing slash
+    // @description * `libType` is case sensitive
+    // @description ---
+    // 
+    // @example lib = load_lib                                              //Load metaxploit.so from /lib directory
+    // @example lib = load_lib("metaxploit.so")                             //Load a library without specifying type
+    // @example lib = load_lib("customLib.so", "/altLib")                   //Load a library from specified directory
+    // @example lib = load_lib("crypto.so", "/lib", "cryptoLib")            //Load a library with a specified type (null on type mismatch)
+    load_lib = function(libName = "metaxploit.so", libDir = "/lib", libType = "")
+        locals.libLocation = locals.libDir + "/" + locals.libName
+        if locals.libName == "" then
+            return null
+        end if
+        locals.lib = include_lib(locals.libLocation)
+            if not typeof(locals.lib) == null then
+                if locals.libType == "" then
+                    return locals.lib
+                else if typeof(locals.lib) == locals.libType then
+                    return locals.lib
+                else
+                    return null
+                end if
+            else
+                return null
+            end if
+    end function
+
+// Require user to pass parameters
+    // @description **Description:**
+    // @description Specifies Usage Information and number of required paramters.
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @param {string} usage - The name of the library to load.
+    // @description - `usage`:`<string>`
+    // @param {number} minReqParams - The directory where the library is located.
+    // @description - `minReqParams`:`<number>`
+    //
+    // @description **Parameter Defaults:**
+    // @description - `none`
+    //
+    // @description **Return:**
+    // @return {void}
+    // @example
+    // force_params("myApp [ipAddress] [port#]", 2)
+    // @description ---
+    //    
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---    
+        force_params = function(usage, minReqParams)
+            if globals.params.len < minReqParams then return locals.usage
+            if globals.params[0] == "-h" or globals.params[0] == "--help" then exit locals.usage
+            if globals.params.len < locals.minReqParams then exit locals.usage
+        end function
+
+    user_navigation = function (numberIndex, userInput, waitTime = 0.3)
+        indexChange = numberIndex
+        if locals.userInput == "UpArrow" then
+            locals.indexChange = locals.indexChange - 1
+        end if
+        if locals.userInput == "DownArrow" then
+            locals.indexChange = locals.indexChange + 1
+        end if
+        wait(waitTime)
+        return locals.indexChange
+    end function 
+    // @startuml
+    // start
+    // if (<color:blue>params.len < 1?</color>) then (<color:red>Yes</color>)
+    //   :<color:purple>exit / print usage</color>;
+    //   stop
+    // else (<color:green>No</color>)
+    // endif
+    // if (<color:blue>params[0] == "-h" or params[0] == "--help"?</color>) then (<color:red>Yes</color>)
+    //   :<color:purple>exit usage</color>;
+    //   stop
+    // else (<color:green>No</color>)
+    // endif
+    // if (<color:blue>params.len &lt; minReqParams?</color>) then (<color:red>Yes</color>)
+    //   :<color:purple>exit usage</color>;
+    //   stop
+    // else (<color:green>No</color>)
+    // endif
+    // stop
+    // @enduml
+
+// Unsafe Check List
+    // @description **Description**
+    // @description Split Unsafe Check Results into Individual Exploit Results and return list of UnsafeCheck strings
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @param {string} scanResults - The name of the library to load.
+    // @description - `scanResults` : `string` result from `fetch_exploit_requirements()`
+    //
+    // @description **Default Parameters:**
+    // @description - none
+    // @description ---
+    //
+    // @return {list <string>}
+    // @description **Return**
+    // `list`:`string`
+    // @description ---    
+    // 
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---    
+    //   
+    // @example libLocation = "/lib/aptclient.so"
+    // @example metax = include_lib("/lib/metaxploit.so")
+    // @example metaLib = metax.load(locals.libLocation)
+    // @example exploitMem = find_exploitable_addresses(libLocation, metaxploitObject), libLocation, metaxploitObject)
+    // @example
+    // unsafeCheckList = unsafe_check_list(fetch_exploit_requirments(exploitMem)
+        unsafe_check_list = function(scanResults)
+            locals.scanResults = locals.scanResults.remove("decompiling source..." + char(10) + "searching unsecure values..." + char(10))
+            locals.unsafeCheckList = locals.scanResults.split(char(10)*2)
+            return locals.unsafeCheckList
+        end function
+
+// Get Object Object Owner
+    // @description **Description:**
+    // @description Determine the permission level of an object
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @param {map<string,method>} overflowObject
+    // @description - `overflowObject`:`<object>` The object to test
+    //
+    // @description **Return:**
+    // @return {string}
+    // @description `null` | `string` as `"root"`, `"guest"`, or `"{user_name}"`
+    // @description ---
+    //    
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description --- 
+    //
+    // @example objectOwner = get_object_owner(overflowResult)
+    get_object_owner = function(overflowObject, returnUsername = false)
+        locals.overflowOwner = null
+        locals.overflowObjectType = typeof(locals.overflowObject)
+        if locals.overflowObjectType == null then return null
+        if locals.overflowObjectType == "file" then
+            return locals.overflowObject.owner
+        end if
+        if locals.overflowObjectType == "shell" or locals.overflowObjectType == "computer" then
+            if locals.overflowObjectType == "shell" then locals.rootFolder = locals.overflowObject.host_computer.File("/root")
+            if overflowObjectType == "computer" then locals.rootFolder = locals.overflowObject.File("/root")
+            if not locals.rootFolder.has_permission("w") == 0 then return "root"
+            if locals.overflowObjectType == "shell" then locals.homeFolders = locals.overflowObject.host_computer.File("/home").get_folders
+            if locals.overflowObjectType == "computer" then locals.homeFolders = locals.overflowObject.File("/home").get_folders
+            for userFolder in locals.homeFolders
+                if locals.userFolder.has_permission("w") then
+                    if locals.returnUsername == true then
+                        if not locals.overflowOwner == "guest" then 
+                            locals.overflowOwner = locals.userFolder.name
+                        end if
+                    else
+                        if not locals.overflowOwner == "guest" then 
+                            locals.overflowOwner = "user"
+                        end if
+                    end if
+                end if
+            end for
+        end if
+        return locals.overflowOwner           
+    end function
+
+// return exploit requirements
+    // @description **Description:**
+    // @description Scan a library with metaxploit.scan_address using a list of provided vulnerable addresses and return an object containing exploit(s) requirments
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @param {list<string>} addressList
+    // @description - `addressList`:`list<string>` List of addresses obtained from metaxploit.scan
+    // @param {string} libLocation
+    // @description - `libLocation`:`string` The locaition of library to scan that the addressess were obtained from
+    // @param {map<metaxploitLib>} metaxploitObject
+    // @description - `map`:`metaxploitLib` A metaxploitObject
+    // @param {flag} [remoteTarget]
+    // @description - `remoteTarget`:`flag` Specifiy if the library being scanned locally, or on a remote target
+    // @param {number} [targetPort]
+    // @description - `targetPort`:`number` Specifiy the port on the remote target
+    //
+    // @description **Parameter Defaults:**
+    // @description - `targetPort`:`false`
+    // @description - `targetPort`:`0`
+    //
+    // @description **Return:**
+    // @return {list<maps>}{string}
+    // @description `list<maps>`:`<exploitRequirments>`
+    // @description - - `.address`
+    // @description - - `.variable`
+    // @description - - `.cra`
+    // @description - - `.cua`
+    // @description - - `.cga`
+    // @description - - `.rpf`
+    // @description - - `.rur`
+    // @description - - `.is_patched`
+    // @description - - `.version`
+    // @description ---
+    //    
+    // @description **Requires:**
+    // @description - `function`:`unsafe_check_list()`@`version`:`0.0.1` or higher
+    // @description - `method`:`list.crop`@`version`:`0.0.1` or higher
+    // @description ---
+    //
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---
+    //
+    // @description ***footnotes***   
+    // @description Parameters are not checked for validity   
+    // @description ---
+    //
+    // @example scanLibLocation = "/lib/aptclient.so"
+    // @example metaxLocation = "/lib/metaxploit.so"
+    // @example metax = include_lib(metaxLocation)
+    // @example
+    // exploitAddressList = find_exploitable_addresses(scanLibLocation, metax)
+    // @example
+    // exploitReq = fetch_exploit_requirements(exploitAddressList, libLocation, metax)
+    // @example
+    // print exploitReq[0].address + ":" + exploitReq[0].variable //prints values to be used with metaxploit.scan_address
+    fetch_exploit_requirements = function(addressList, libLocation, metaxploitObject, remoteTarget = false, targetPort = 0)
+        locals.metax = locals.metaxploitObject
+        if locals.remoteTarget == false then
+            locals.metaLib = locals.metax.load(locals.libLocation)
+        else
+            locals.metaLib = locals.metax.net_use(locals.libLocation, locals.targetPort)
+        end if
+        locals.allExploitData = []
+        for address in locals.addressList
+            locals.scanResults = locals.metax.scan_address(locals.metaLib, locals.address)
+            locals.unsafeCheckLists = (globals.unsafe_check_list(locals.scanResults)).crop
+            for unsafeCheck in locals.unsafeCheckLists
+                    locals.exploits = {"classID": "exploitRequirments", "lib_name":metaLib.lib_name, "version":version,"is_patched":locals.metaLib.is_patched ,"address": locals.address, "variable": locals.unsafeCheck.extract, "cra": false, "cga": false, "cua": false, "rur": 0, "rpf": 0, "objectType":null, "privs":null}
+                    if not locals.unsafeCheck.indexOf("Checking root active") then
+                        locals.exploits.cra = false
+                    else
+                        locals.exploits.cra = true
+                    end if
+                    if not locals.unsafeCheck.indexOf("Checking an active user") then
+                        locals.exploits.cua = false
+                    else
+                        locals.exploits.cua = true
+                    end if
+                    if not locals.unsafeCheck.indexOf("Checking guest active") then
+                        locals.exploits.cga = false
+                    else
+                        locals.exploits.cga = true
+                    end if
+                        locals.unsafeCheckItems = split(locals.unsafeCheck, char(10))
+                        for unsafeItem in locals.unsafeCheckItems
+                            if not locals.unsafeItem.indexOf("to ", ".") == null then
+                                if not locals.unsafeItem.indexOf("registered users") == null then
+                                    locals.exploits.rur = to_int((locals.unsafeItem.extract("to ", ".")).remove_char_last)
+                                end if
+                                if not locals.unsafeItem.indexOf("port forwarding") == null then
+                                    locals.portForwards = locals.unsafeItem.remove(" port forwarding configured from router to the target computer.")
+                                    locals.exploits.rpf = to_int(((locals.unsafeItem.remove(" port forwarding configured from router to the target computer.")).remove("* ")))
+                                end if						
+                            end if
+                        end for
+                    locals.exploits.version = locals.metaLib.version
+                    locals.allExploitData.push(locals.exploits)
+                end for
+        end for
+        return locals.allExploitData
+    end function
+    // @startyaml
+    //
+    // # ExploitRequirements Class Diagram
+    // #highlight "ExploitRequirements" / "Meta"
+    //
+    // ExploitRequirements:
+    //   Meta:
+    //     is_patched: "boolean"
+    //   Exploit:
+    //     address: "string"
+    //     variable: "string"
+    //     version: "string"
+    //   Requirements:
+    //     cra: "boolean"    # Check root is active
+    //     cua: "boolean"    # Check user is active
+    //     cga: "boolean"    # Check guest is active
+    //     rur: "number"     # Required # of users registered
+    //     rpf: "number"     # Required # of port forwards
+    //
+    // # Note:
+    // # * cra: Check root is active
+    // # * cua: Check user is active
+    // # * cga: Check guest is active
+    // # * Required # of users registered
+    // # * Required # of port forwards
+    //
+    // @endyaml
+
+// Find Vulnerable Addresses
+    // @description **Description:**
+    // @description Scan a library for vulnerable addresses
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @param {string} libLocation
+    // @description - `libLocation`:`<string>` Remote IP Address or local absolute file location
+    // @param {map<string,function>} `metaxploitObject`:`<metaxploitLib>`
+    // @description - `metaxploitObject`:`<metaxploitLib>`
+    // @param {flag} [remoteTarget]
+    // @description - `remoteTarget`:`<flag>`
+    // @param {number} [targetPort]
+    // @description - `targetPort`:`<number>`
+    //
+    // @description **Parameter Defaults:**
+    // @description - `remoteTarget`:`false`
+    // @description - `targetPort`:`0`
+    //
+    // @description **Return:**
+    // @return {void}
+    // @description `void`
+    // @description ---
+    //    
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description --- 
+    //
+    // @example libLocation = params[0]
+    // @example metax = include_lib("/lib/metaxploit.so")
+    // @example
+    // print find_exploitable_addresses(libLocation, metax)
+    find_exploitable_addresses = function(libLocation, metaxploitObject, remoteTarget = false, targetPort = 0)
+        locals.metax = locals.metaxploitObject
+            if locals.remoteTarget == false then
+                locals.metaLib = locals.metax.load(locals.libLocation)
+            else
+                locals.netSession = locals.metax.net_use(locals.libLocation, to_int(locals.targetPort))
+                locals.metaLib = locals.netSession.dump_lib
+            end if
+            locals.libScanResult = locals.metax.scan(locals.metaLib)
+            return locals.libScanResult
+    end function
+        // @startuml
+        // start
+        // :<color:purple>metax = metaxploitObject</color>;
+        // if (<color:blue>remoteTarget == false?</color>) then (<color:green>Yes</color>)
+        //   :<color:purple>metaLib = metax.load(libLocation)</color>;
+        // else (<color:green>No</color>)
+        //   :<color:purple>metaLib = metax.net_use(libLocation, to_int(targetPort))</color>;
+        // endif
+        // :<color:purple>libScanResult = metax.scan(metaLib)</color>;
+        // :<color:green>return libScanResult</color>;
+        // stop
+        // @enduml
+
+// Return true or false as a string
+    // @description **Description:**
+    // @description Convert a boolean value **(`true`|`false`)** | **(`0`|`1`)** into `<string>`: `"true"`|`"false"`
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @param {flag} boolVal
+    // @description - `boolVal`:`<flag>`
+    //
+    // @description **Parameter Defaults:**
+    // @description - `none`
+    //
+    // @description **Return:** `string`: `"true"` | `"false"`
+    // @return {string}
+    // @description ---
+    //    
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---
+    //
+    // @description ***footnotes***   
+    // @description Parameters are not checked for validity   
+    // @description - Any invalid values passed will return `null`
+    // @description - Negative numbers will return `"false"`
+    // @description ---        
+    //
+    // @example 
+    // print (bool_text("true")) //Output: null
+    // @example
+    // print (bool_text(true)) //Output: "true"
+    // @example
+    // print (bool_text(1)) //Output: "true"
+    // @example
+    // print (bool_text(0)) //Output: "false"
+    // @example
+    // print (bool_text(-1)) //Output: "false"
+    // @example
+    // print (bool_text(false)) //Output: "false"
+    // @example
+    // print (bool_text(object)) //Output: null
+    bool_text = function(boolVal, text = ["true", "false"], colors = ["red", "green"])
+            locals.boolText = {"yes":locals.text[0], "no":locals.text[1]}
+            if locals.boolVal < 0 then return "<color=" + locals.colors[1] + ">" + locals.boolText.no + "</color>"
+            if locals.boolVal > 1 then return "<color=" + locals.colors[0] + ">" + locals.boolText.yes + "</color>"
+            if locals.boolVal == 1 then return "<color=" + locals.colors[0] + ">" + locals.boolText.yes + "</color>"
+            if locals.boolVal == 0 then return "<color=" + locals.colors[1] + ">" + locals.boolText.no + "</color>"
+        return null
+    end function
+
+
+// Append to file
+    // @description **Description:**
+    // @description Appends data to an existing file, or creates a new file if file does not exist
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @param {string} savePath
+    // @description - `savePath`:`<string>`
+    // @param {string} `saveFile`:`<string>`
+    // @description - `saveFile`:`<string>`
+    // @param {string} `newText`:`<string>`
+    // @description - `newText`:`<string>`
+    //
+    // @description **Parameter Defaults:**
+    // @description - `none`
+    //
+    // @description **Return:**
+    // @return {void}
+    // @description `void`
+    // @description ---
+    //    
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---
+    //
+    // @description ***footnotes***   
+    // @description Parameters are not checked for validity   
+    // @description ---        
+    //
+    // @example 
+    // @example dataString = "0xFC45B2XR9:missspeling"
+    // @example
+    // file_append("/DatabaseDir", "addressData.db", dataString) //Appends dataString to file
+    // @description ---  
+        file_append = function(savePath, saveFile, newText)
+            //********************************************
+            locals.fileContent = ""
+            locals.fileLocation = locals.savePath + "/" + locals.saveFile
+            //********************************************	
+            locals.hostComputer = get_shell.host_computer
+            locals.fileObj = locals.hostComputer.File(locals.fileLocation)
+            if not locals.fileObj then
+                locals.hostComputer.touch(locals.savePath, locals.saveFile)
+                locals.fileObj = locals.hostComputer.File(locals.fileLocation)
+            end if
+            //********************************************
+            //********************************************	
+            if locals.fileObj == null then return null
+            if locals.fileObj.has_permission("r") then
+                if locals.fileObj.has_permission("w") then
+                    locals.fileContent = locals.fileObj.get_content
+                    if locals.fileContent == null then
+                        locals.fileObj.set_content(locals.newText)
+                    else
+                        locals.fileObj.set_content(locals.fileContent + locals.newText)
+                    end if
+                else
+                print("Permission Error Saving Data to: " + locals.saveFile + " [No Write Permission]")
+                end if
+            else
+                print("Permission Error Saving Data to: " + locals.saveFile + " [No Read Permission]")
+            end if
+        end function
+    // @startuml
+    // start
+    // :<color:purple>fileContent = ""</color>;
+    // :<color:purple>fileLocation = savePath + "/" + saveFile</color>;
+    // :<color:purple>hostComputer = get_shell.host_computer</color>;
+    // :<color:purple>fileObj = hostComputer.File(fileLocation)</color>;
+    // if (<color:blue>fileObj does not exist?</color>) then (<color:red>Yes</color>)
+    //   :<color:purple>Create file: touch(savePath, saveFile)</color>;
+    //   :<color:purple>fileObj = hostComputer.File(fileLocation)</color>;
+    // endif
+    // if (<color:blue>fileObj has both read and write permission?</color>) then (<color:green>Yes</color>)
+    //   :<color:purple>fileContent = fileObj.get_content</color>;
+    //   if (<color:blue>fileContent is null?</color>) then (<color:red>Yes</color>)
+    //     :<color:purple>Set file content to newText</color>;
+    //   else (<color:green>No</color>)
+    //     :<color:purple>Append newText to existing content</color>;
+    //   endif
+    // else (<color:red>No Read/Write Permission</color>)
+    //   :<color:red>Print permission error</color>;
+    // endif
+    // stop
+    // @enduml
+
+// Look for a file
+    // @description **Description:**
+    // @description Check to see if the specified file exists
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @param {string} filePath
+    // @description - `filePath`:`<string>`
+    // @param {string} `fileName`:`<string>`
+    // @description - `fileName`:`<string>`
+    //
+    // @description **Parameter Defaults:**
+    // @description - `none`
+    //
+    // @description **Return:**
+    // @return {boolean}
+    // @description `boolean`:`true`|`false`
+    // @description ---
+    //    
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---
+    //
+    // @description ***footnotes***   
+    // @description Parameters are not checked for validity   
+    // @description ---        
+    //
+    // @example
+    // file_exists("/DatabaseDir", "addressData.db") // return true if found, otherwise false
+    // @description ---  		
+        file_exists = function(filePath, fileName)
+            locals.hostComputer = get_shell.host_computer
+            locals.fileLocation = locals.filePath + "/" + locals.fileName
+            locals.fileObj = locals.hostComputer.File(locals.fileLocation)
+            if not locals.fileObj then
+                return false
+            else
+                return true
+            end if		
+        end function       
+
+// Applies color tag to the string
+    // @description **Description:**
+    // @description Modifies a text string by wraping it within the color tag
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @param {string} colorValue
+    // @description - `colorValue`
+    //
+    // @description **Return:**
+    // @return {string}
+    // @description `string` the string value embedded in the `<color>` tag
+    // @description ---
+    //
+    // @description **Links:**
+    // @description - [Text Mesh Pro: Rich Color Text](https://docs.unity3d.com/Packages/com.unity.textmeshpro@4.0/manual/RichTextColor.html)	
+    // @description - [HTML Color Names: Supported Name List](https://htmlcolorcodes.com/color-names/)
+    // @description ---	
+    //
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---
+    //
+    // @description ***footnotes***
+    // @description Color names are case sensitive
+    // @description ---
+    //
+    // @example newString = "Hello"   
+    // @example 
+    // @example result = newString.color("blue");
+    // @example     
+    // print(result); // Outputs: <color=blue>Hello</color>
+    // @example        
+    // @example result = newString.color("#FFFFFF");
+    // @example   
+    // print(result); // Outputs: <color=#FFFFFF>Hello</color>
+    // @example        
+    // @example result = newString.color("Aquamarine");
+    // @example   
+    // print(result); // Outputs: <color=#7FFFD4>Hello</color>        
+    string.color = function(colorValue)
+        if not typeof(colorValue) == "string" then return self
+        //*****************************************************
+        // Red HEX Codes
+        //*****************************************************	
+        if colorValue == "IndianRed" then colorValue = "#CD5C5C"
+        if colorValue == "LightCoral" then colorValue = "#F08080"
+        if colorValue == "Salmon" then colorValue = "#FA8072"
+        if colorValue == "DarkSalmon" then colorValue = "#E9967A"
+        if colorValue == "LightSalmon" then colorValue = "#FFA07A"			
+        if colorValue == "Crimson" then colorValue = "#DC143C"
+        if colorValue == "Red" then colorValue = "#FF0000"
+        if colorValue == "FireBrick" then colorValue = "#B22222"
+        if colorValue == "DarkRed" then colorValue = "#8B0000"
+        //*****************************************************
+        // Pink HEX Codes
+        //*****************************************************		
+        if colorValue == "Pink" then colorValue = "#FFC0CB"
+        if colorValue == "LightPink" then colorValue = "#FFB6C1"		
+        if colorValue == "HotPink" then colorValue = "#FF69B4"		
+        if colorValue == "DeepPink" then colorValue = "#FF1493"		
+        if colorValue == "MediumVioletRed" then colorValue = "#C71585"				
+        if colorValue == "PaleVioletRed" then colorValue = "#DB7093"				
+        //*****************************************************
+        // Orange HEX Codes
+        //*****************************************************					
+        if colorValue == "Coral" then colorValue = "#FF7F50"						
+        if colorValue == "Tomato" then colorValue = "#FF6347"				
+        if colorValue == "OrangeRed" then colorValue = "#FF4500"						
+        if colorValue == "DarkOrange" then colorValue = "#FF8C00"				
+        if colorValue == "Orange" then colorValue = "#FFA500"						
+        //*****************************************************
+        // Yellow HEX Codes
+        //*****************************************************
+        if colorValue == "Gold" then colorValue = "#FFD700"
+        if colorValue == "Yellow" then colorValue = "#FFFF00"
+        if colorValue == "LightYellow" then colorValue = "#FFFFE0"
+        if colorValue == "LemonChiffon" then colorValue = "#FFFACD"
+        if colorValue == "LightGoldenrodYellow" then colorValue = "#FAFAD2"        
+        if colorValue == "PapayaWhip" then colorValue = "#FFEFD5"
+        if colorValue == "Moccasin" then colorValue = "#FFE4B5"
+        if colorValue == "PeachPuff" then colorValue = "#FFDAB9"
+        if colorValue == "PaleGoldenrod" then colorValue = "#EEE8AA"
+        if colorValue == "Khaki" then colorValue = "#F0E68C"                                					
+        if colorValue == "DarkKhaki" then colorValue = "#BDB76B"                                					        
+        //*****************************************************
+        // Purple HEX Codes
+        //*****************************************************
+        if colorValue == "Lavender" then colorValue = "#E6E6FA"
+        if colorValue == "Thistle" then colorValue = "#D8BFD8"
+        if colorValue == "Plum" then colorValue = "#DDA0DD"
+        if colorValue == "Violet" then colorValue = "#EE82EE"
+        if colorValue == "Orchid" then colorValue = "#DA70D6"        
+        if colorValue == "Fuchsia" then colorValue = "#FF00FF"
+        if colorValue == "Magenta" then colorValue = "#FF00FF"
+        if colorValue == "MediumOrchid" then colorValue = "#BA55D3"
+        if colorValue == "MediumPurple" then colorValue = "#9370DB"
+        if colorValue == "RebeccaPurple" then colorValue = "#663399"                                					
+        if colorValue == "BlueViolet" then colorValue = "#8A2BE2"
+        if colorValue == "DarkViolet" then colorValue = "#9400D3"
+        if colorValue == "DarkOrchid" then colorValue = "#9932CC"
+        if colorValue == "DarkMagenta" then colorValue = "#8B008B"
+        if colorValue == "Purple" then colorValue = "#800080"
+        if colorValue == "Indigo" then colorValue = "#4B0082"        
+        if colorValue == "SlateBlue" then colorValue = "#6A5ACD"
+        if colorValue == "DarkSlateBlue" then colorValue = "#483D8B"
+        if colorValue == "MediumSlateBlue" then colorValue = "#7B68EE" 
+        //*****************************************************
+        // Green HEX Codes
+        //*****************************************************
+        if colorValue == "GreenYellow" then colorValue = "#ADFF2F"
+        if colorValue == "Chartreuse" then colorValue = "#7FFF00"
+        if colorValue == "LawnGreen" then colorValue = "#7CFC00"
+        if colorValue == "Lime" then colorValue = "#00FF00"
+        if colorValue == "LimeGreen" then colorValue = "#32CD32"        
+        if colorValue == "PaleGreen" then colorValue = "#98FB98"
+        if colorValue == "LightGreen" then colorValue = "#90EE90"
+        if colorValue == "MediumSpringGreen" then colorValue = "#00FA9A"
+        if colorValue == "SpringGreen" then colorValue = "#00FF7F"
+        if colorValue == "SeaGreen" then colorValue = "#2E8B57"
+        if colorValue == "ForestGreen" then colorValue = "#228B22"                                					
+        if colorValue == "Green" then colorValue = "#008000"
+        if colorValue == "DarkGreen" then colorValue = "#006400"
+        if colorValue == "YellowGreen" then colorValue = "#9ACD32"
+        if colorValue == "OliveDrab" then colorValue = "#6B8E23"
+        if colorValue == "Olive" then colorValue = "#808000"
+        if colorValue == "DarkOliveGreen" then colorValue = "#556B2F"        
+        if colorValue == "MediumAquamarine" then colorValue = "#66CDAA"
+        if colorValue == "DarkSeaGreen" then colorValue = "#8FBC8B"
+        if colorValue == "LightSeaGreen" then colorValue = "#20B2AA" 
+        if colorValue == "DarkCyan" then colorValue = "#008B8B"        
+        if colorValue == "Teal" then colorValue = "#008080"
+        //*****************************************************
+        // Blue HEX Codes
+        //*****************************************************	
+        if colorValue == "Aqua" then colorValue = "#00FFFF"
+        if colorValue == "Cyan" then colorValue = "#00FFFF"
+        if colorValue == "LightCyan" then colorValue = "#E0FFFF"
+        if colorValue == "PaleTurquoise" then colorValue = "#AFEEEE"
+        if colorValue == "Aquamarine" then colorValue = "#7FFFD4"        
+        if colorValue == "Turquoise" then colorValue = "#40E0D0"
+        if colorValue == "MediumTurquoise" then colorValue = "#48D1CC"
+        if colorValue == "DarkTurquoise" then colorValue = "#00CED1"
+        if colorValue == "CadetBlue" then colorValue = "#5F9EA0"
+        if colorValue == "SteelBlue" then colorValue = "#4682B4"                           					
+        if colorValue == "LightSteelBlue" then colorValue = "#B0C4DE"
+        if colorValue == "PowerBlue" then colorValue = "#B0E0E6"
+        if colorValue == "LightBlue" then colorValue = "#ADD8E6"
+        if colorValue == "SkyBlue" then colorValue = "#87CEEB"
+        if colorValue == "LightSkyBlue" then colorValue = "#87CEFA"
+        if colorValue == "DeepSkyBlue" then colorValue = "#00BFFF"        
+        if colorValue == "DodgerBlue" then colorValue = "#1E90FF"
+        if colorValue == "CornflowerBlue" then colorValue = "#6495ED"
+        if colorValue == "MediumSlateBlue" then colorValue = "#7B68EE"
+        if colorValue == "RoyalBlue" then colorValue = "#4169E1"
+        if colorValue == "Blue" then colorValue = "#0000FF"
+        if colorValue == "MediumBlue" then colorValue = "#0000CD"
+        if colorValue == "DarkBlue" then colorValue = "#00008B"  
+        if colorValue == "Navy" then colorValue = "#000080"
+        if colorValue == "MidnightBlue" then colorValue = "#191970"                        
+        //*****************************************************
+        // Brown HEX Codes
+        //*****************************************************	
+        if colorValue == "Cornsilk" then colorValue = "#FFF8DC"
+        if colorValue == "BlanchedAlmond" then colorValue = "#FFEBCD"
+        if colorValue == "Bisque" then colorValue = "#FFE4C4"
+        if colorValue == "NavajoWhite" then colorValue = "#FFDEAD"
+        if colorValue == "Wheat" then colorValue = "#F5DEB3"        
+        if colorValue == "BurlyWood" then colorValue = "#D#B887"
+        if colorValue == "Tan" then colorValue = "#D2B48C"
+        if colorValue == "RosyBrown" then colorValue = "#BC8F8F"
+        if colorValue == "SandyBrown" then colorValue = "#F4A460"
+        if colorValue == "Goldenrod" then colorValue = "#DAA520"                                					
+        if colorValue == "DarkGoldenrod" then colorValue = "#B8860B"
+        if colorValue == "Peru" then colorValue = "#CD853F"
+        if colorValue == "Chocolate" then colorValue = "#D2691E"
+        if colorValue == "SaddleBrown" then colorValue = "#8B4513"
+        if colorValue == "Sienna" then colorValue = "#A0522D"
+        if colorValue == "Brown" then colorValue = "#A52A2A"        
+        if colorValue == "Maroon" then colorValue = "#800000"          			
+        //*****************************************************
+        // White HEX Codes
+        //*****************************************************	
+        if colorValue == "White" then colorValue = "#FFFFFF"
+        if colorValue == "Snow" then colorValue = "#FFFAFA"
+        if colorValue == "HoneyDew" then colorValue = "#F0FFF0"
+        if colorValue == "MintCream" then colorValue = "#F5FFFA"
+        if colorValue == "Azure" then colorValue = "#F0F8FF"        
+        if colorValue == "AliceBlue" then colorValue = "#F0F8FF"
+        if colorValue == "GhostWhite" then colorValue = "#F8F8FF"
+        if colorValue == "WhiteSmoke" then colorValue = "#F5F5F5"
+        if colorValue == "SeaShell" then colorValue = "#FFF5EE"
+        if colorValue == "Beige" then colorValue = "#F5F5DC"                                					
+        if colorValue == "OldLace" then colorValue = "#FDF5E6"
+        if colorValue == "FloralWhite" then colorValue = "#FFFAF0"
+        if colorValue == "Ivory" then colorValue = "#FFFFF0"
+        if colorValue == "AntiqueWhite" then colorValue = "#FAEBD7"
+        if colorValue == "Linen" then colorValue = "#FAF0E6"
+        if colorValue == "LavenderBlush" then colorValue = "#FFF0F5"        
+        if colorValue == "MistyRose" then colorValue = "#FFE4E1"
+        //*****************************************************
+        // Grey HEX Codes
+        //*****************************************************	
+        if colorValue == "Gainsboro" then colorValue = "#DCDCDC"
+        if colorValue == "LightGrey" then colorValue = "#D3D3D3"
+        if colorValue == "Silver" then colorValue = "#C0C0C0"
+        if colorValue == "DarkGrey" then colorValue = "#A9A9A9"
+        if colorValue == "Grey" then colorValue = "#808080"        
+        if colorValue == "DimGrey" then colorValue = "#696969"
+        if colorValue == "LightSlateGray" then colorValue = "#778899"
+        if colorValue == "SlateGrey" then colorValue = "#708090"
+        if colorValue == "DarkSlateGrey" then colorValue = "#2F4F4F"
+        if colorValue == "Black" then colorValue = "#000000"
+        //*****************************************************                                      					   	
+        return "<color=" + colorValue + ">" + self + "</color>"
+    end function
+// Applies bold tag to the string
+    // @description **Description:**
+    // @description Modifies a text string and wraps within the bold tag
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @description - None
+    //
+    // @description **Return:**
+    // @return {string}
+    // @description `string` the string value embedded in the `<b>` tag
+    // @description ---
+    //
+    // @description **Links:**
+    // @description [Text Mesh Pro: Rich Text Bold](https://docs.unity3d.com/Packages/com.unity.textmeshpro@4.0/manual/RichTextBoldItalic.html)
+    // @description ---
+    //    
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---     
+    //
+    // @example newString = "Hello"
+    // @example 
+    // @example result = newString.bold
+    // @example 
+    // print(result); // Output: <b>Hello</b>          
+    // @description --- 
+    string.bold = function()
+        return "<b>" + self + "</b>"
+    end function
+// Crops off empty elements from the start and end of a list
+    // @description **Description:**
+    // @description Iterates through a list end and checks for empty items, if found, `.remove` is used on list item
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @description - none
+    //
+    // @description **Return:**
+    // @return {list}
+    // @description `list` The same list with empty items purged from ends
+    // @description ---
+    //
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---
+    //
+    // @example myList = ["","","cat","dog",""];
+    // @example result = myList.crop
+    // @example
+    // print(result); // Output: ["cat","dog"]
+    // @description ---        
+        list.crop = function()
+            while not self[self.len - 1].len > 0
+                self.remove(self.len - 1)
+            end while
+            while not self[0].len > 0
+                self.remove(0)
+            end while
+            return self
+        end function
+    //@name crop
+        //  * @startuml
+        //  * entity ListObject
+        //  * control ".crop" as crop
+        //  *   ListObject -> crop : [//""//,//""//,"item1", "item2", //""//]
+        //  *   crop -> ListObject : ["item1", "item2"]
+        //  * footer
+        //  *   list.crop
+        //  * endfooter         
+        //  * @enduml     
+// Extract the text between the first found indexies of the given start and end strings        
+    // @description **Description:** Extract the text between the first found bold tag if no paramaters provided
+    // @description ---
+    // @description **Parameters:**
+    // @param {string} [tagStart = "<b>""]
+    // @description `tagStart`:`string`
+    // @param {string} [tagEnd = "</b>"]
+    // @description `tagEnd`:`string`
+    // @description ---
+    // @return {string or null}
+    // @example newString = "<b>0x53C737</b>"
+    // @example result = newString.extract("<b>", "</b>")
+    // @example print(result); // Output: 0x53C737   
+    string.extract = function(tagStart = "<b>", tagEnd = "</b>")
+        locals.startIndex = self.indexOf(locals.tagStart) + (locals.tagStart.len)
+        locals.endIndex = (self.indexOf(locals.tagEnd) - (locals.tagEnd.len - locals.tagStart.len)) + 1
+        return slice(self, locals.startIndex, locals.endIndex)
+    end function
+    // @startuml
+        // start
+        // :<color:purple>startIndex = tagStart</color>;
+        // :<color:purple>endIndex = tagEnd</color>;
+        // :<color:green>return slice(self, startIndex, endIndex)</color>;
+        // stop
+        // @enduml
+// Remove the last character of the given text.
+    //  
+    //  @return {string}
+    //  @example newString = "Hello"
+    //  @example             
+    //  @example result = newString.remove_char_last
+    //  @example          
+    //  print(result); // Outputs: Hell
+    string.remove_char_last = function()
+        return slice(self, 0, (self.len - 1))
+    end function
+    //@name remove_char_last
+        //  *
+        //  * @uml
+        //  * @startuml
+        //  * entity StringObject
+        //  * control ".remove_char_last" as remove_char_last
+        //  * StringObject -> remove_char_last : string
+        //  * remove_char_last -> StringObject : strin
+        //  * footer
+        //  * string.remove_char_last
+        //  * endfooter 
+        //  * @enduml
+// Applies mark tag to the string
+    // @description **Description:**
+    // @description Modifies a text string by wraping it within the mark tag
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @param {string} [color]
+    // @description - `color`:`string` | #RRGGBBAA [ HEXA ] 
+    //
+    // @description **Parameter Defaults:**
+    // @description - `color`:`#FFFF00AA`
+    //
+    // @description **Return:**
+    // @return {string}
+    // @description `string` The string value wrapped within the `<mark>` tag
+    // @description ---
+    //
+    // @description **Links:**
+    // @description - [Text Mesh Pro: Rich Text mark](https://docs.unity3d.com/Packages/com.unity.textmeshpro@4.0/manual/RichTextMark.html  )	
+    // @description ---	
+    //
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---
+    //
+    //  @example newString = "Hello"
+    //  @example 
+    //  @example result = newString.mark
+    //  @example 
+    //  print(result); // Outputs: <mark="#FFFF00AA">Hello</mark>   
+    string.mark = function(color="#FFFF00AA")
+        return "<mark=" + locals.color + ">" + self + "</mark>"
+    end function 
+// Applies line-indent tag to the string
+    // @description **Description:**
+    // @description Modifies a text string to wrap it in the line-indent tag
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @param {string} [alignment]
+    // @description - `alignment` Accepted values: `left`, `center`, `right`, `justified`, and `flush`
+    // @param {boolean} [closeTag]
+    // @description - `closeTag` Accepted values: `true` or `false`
+    //
+    // @description **Parameter Defaults:**
+    // @description - `alignment`:`center`
+    // @description - `closeTag`:`true`
+    //
+    // @description **Return:**
+    // @return {string}
+    // @description `string` the string value embedded in (or preceded by) the `<align>` tag
+    // @description ---
+    //
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---
+    //
+    // @description ---        
+    // @description **Links:**
+    // @description [Text Mesh Pro: Rich Text Line Indentation](https://docs.unity3d.com/Packages/com.unity.textmeshpro@4.0/manual/RichTextLineIndentation.html)
+    // @description ---       
+    // @description ***footnotes***   
+    // @description Parameters are not checked for validity   
+    // @description - `alignment` will not reject invalid values | **Return**: `string<withParseIssues>`
+    // @description - `closeTag` will not reject invalid values | **Return**: `null`
+    // @description
+    // @description If all paramaters passed are invalid | **Return**: `null`
+    // @description ---          
+    //
+    // @return {string}
+    // @example newString = "Hello"
+    // @example 
+    // @example result = newString.line_indent("50%")
+    // @example 
+    // print(result); // Outputs: <line-indent=50%>Hello      
+    string.line_indent = function(lineIndent = "15%")
+        return "<line-indent=" + locals.lineIndent + ">" + self
+    end function  
+// Applies underline tag to the string
+    // @description **Description:**
+    // @description Modifies a text string by wrapping it within the underline tag
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @description * `none`
+    //
+    // @description **Return:**
+    // @return {string}
+    // @description `string` The string wrapped within the `<u>` tag
+    // @description ---
+    //
+    // @description **Links:**
+    // @description - [Text Mesh Pro: Underline](https://docs.unity3d.com/Packages/com.unity.textmeshpro@4.0/manual/RichTextStrikethroughUnderline.html)	
+    // @description ---	
+    //
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---
+    //
+    //  @example newString = "Hello"
+    //  @example 
+    //  @example result = newString.underline
+    //  @example 
+    //  print(result); // Output: <u>Hello</u>
+    string.underline = function()
+        return "<u>" + self + "</u>"
+    end function    
+// Keeps a number within a specified range
+    // @description **Description:**
+    // @description Ensure an number stays between a minimim and maximum value
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @param {number} min - The mix threshold.
+    // @param {number} max - The max threshold.    
+    // @description - `min` The mix threshold.
+    // @description - `max` The max threshold.
+    //
+    // @description **Parameter Defaults:**
+    // @description - none
+    // @description ---
+    //
+    // @description **Return:**
+    // @return {number} he result of the clamp
+    // @description `number` clamped number
+    // @description ---
+    //
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---
+    //
+    // @example myNumber = 42
+    // @example
+    // print myNumber.clamp(42, 100) // Return 42
+    // @example
+    // print myNumber.clamp(75, 100) // Return 75
+    // @example
+    // print myNumber.clamp(0, 40) // Return 40
+    // @description ---
+    number.clamp = function(min, max)
+                if self < locals.min then return locals.min
+                if self > locals.max then return locals.max
+                return self
+    end function
+    // @startuml
+    // title <color:purple>number.clamp Method Diagram</color>
+    // 
+    // class NumberObject {
+    //   + value : number
+    //   + clamp(min: number, max: number) : number
+    // }
+    // 
+    // note right of NumberObject
+    //   The clamp method limits the value to a given range.
+    //   For example:
+    //     • 7.clamp(2,6) returns 6 (upper bound enforced)
+    //     • 1.clamp(2,6) returns 2 (lower bound enforced)
+    // end note
+    // 
+    // @enduml
+    
+// Get name of program *{self}*
+    // @description **Description**
+    // @description Return a string with the name of the file that is running this script
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @param `none`]
+    //
+    // @description **Default Parameters:**
+    // @description - none
+    // @description ---
+    //
+    // @return {string}
+    // @description **Return**
+    // `string`:`The name of the program running`
+    // @description ---    
+    //    
+    // @example
+    // programName = program_name
+    //
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---    
+        program_name = function()
+            locals.splitVal = program_path.split("/")
+            locals.splitVal.reverse
+            return trim(locals.splitVal[0])
+        end function   
+  
+
+// Applies pos arse tag to the string
+    // @description **Description:**
+    // @description Modifies a text string by prepending it with the pos tag
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @description * `position`
+    //
+    // @description **Parameter Defaults:**
+    // @description - `position`:`"50%"`    
+    //
+    // @description **Return:**
+    // @return {string}
+    // @description `string` The string prepended with the `<pos>` tag
+    // @description ---
+    //
+    // @description **Links:**
+    // @description - [Text Mesh Pro: Horizontal Position](https://docs.unity3d.com/Packages/com.unity.textmeshpro@4.0/manual/RichTextPos.html)	
+    // @description ---	
+    //
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---
+    //
+    //  @example newString = "Hello"
+    //  @example 
+    //  @example result = newString.pos
+    //  @example 
+    //  print(result); // Output: <pos=50%>Hello
+string.pos = function(position = "50%")
+    return "<pos=" + locals.position + ">" + self
+end function
+
+// Check if object matches specified type
+// @description **Description:**
+// @description Check if the object passed is of the specified type and return a boolean answer
+// @description ---
+//
+// @description **Parameters:**
+// @param {any} object - The name of the library to load.
+// @description `object`:`any`
+// @param {string} objectType - The type expected
+// @description `objectType`:`string`
+// @description ---
+//
+// @description **Default Parameters:**
+// @description - none
+// @description ---
+//
+// @description **Links:**
+// @description [typeof Documentation](https://documentation.greyscript.org/#GENERAL_TYPEOF) List of standard object types
+// @description ---
+//
+// @description **Return:**
+// @return {boolean} 
+// @description `boolean`:`true`|`false` Whether or not the testObject was of the specified type
+// @description ---   
+//    
+// @description **Author:** Svarii
+// @description **Version:** 0.0.1
+// @description ---    
+//
+// @example
+// print is_typeof(cryptoLibObject, "cryptoLib")  //Output: true
+// @example
+// print is_typeof(metaxploitLibObject, "metaxploitLib") //Output: true
+// @example
+// print is_typeof(metaxploitLibObject, "cryptoLib") //Output: false
+	is_typeof = function(testObject, objectType)
+			if not typeof(locals.testObject) == locals.objectType then return false
+			return true
+	end function
+// @startuml
+// start
+// if (<color:blue>is typeof(object) of the specified type</color>) then (<color:red>No</color>)
+//   :<color:purple>return false</color>;
+//   stop
+// else (<color:green>Yes</color>)
+//   :<color:purple>return true</color>;
+//   stop
+// endif
+// @enduml	
+
+// Crops off empty elements from the start and end of a list
+// @description **Description:**
+// @description Iterates through a list end and checks for empty items, if found, `.remove` is used on list item
+// @description ---
+//
+// @description **Parameters:**
+// @description - none
+//
+// @description **Return:**
+// @return {list}
+// @description `list` The same list with empty items purged from ends
+// @description ---
+//
+// @description **Author:** Svarii
+// @description **Version:** 0.0.1
+// @description ---
+//
+// @example myList = ["","","cat","dog",""];
+// @example result = myList.crop
+// @example
+// print(result); // Output: ["cat","dog"]
+// @description ---        
+    list.crop = function()
+        while not self[self.len - 1].len > 0
+            self.remove(self.len - 1)
+        end while
+        while not self[0].len > 0
+            self.remove(0)
+        end while
+        return self
+    end function
+//@name crop
+    //  * @startuml
+    //  * entity ListObject
+    //  * control ".crop" as crop
+    //  *   ListObject -> crop : [//""//,//""//,"item1", "item2", //""//]
+    //  *   crop -> ListObject : ["item1", "item2"]
+    //  * footer
+    //  *   list.crop
+    //  * endfooter         
+    //  * @enduml
+
+map.get_port_info = function(portNumber)
+	if not typeof(self) == "router" then return "<#FF0000>Type Mismatch, object is not a router"
+	locals.portObject = self.ping_port(locals.portNumber)
+	if not typeof(locals.portObject) == "port" then return "" + locals.portNumber + " <color=#FF0000>FAIL</color>"
+    return self.port_info(locals.portObject)
+end function
+
+// Applies italic tag to the string
+    // @description **Description:**
+    // @description Modifies a text string by wrapping it within the italic tag
+    // @description ---
+    //
+    // @description **Parameters:** `none`
+    //
+    // @description **Return:**
+    // @return {string}
+    // @description `string` The string value wrapped within the `<i>` tag
+    // @description ---
+    //
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---
+    //
+    //  @example newString = "Hello"
+    //  @example 
+    //  @example result = newString.italic
+    //  @example 
+    //  print(result); // Outputs: <i>Hello</i>         
+    //
+    // @description **Links:**
+    // @description - [Text Mesh Pro: Rich Text Italic](https://docs.unity3d.com/Packages/com.unity.textmeshpro@4.0/manual/RichTextBoldItalic.html)	
+    // @description ---	    
+string.italic = function()
+    return "<i>" + self + "</i>"
+end function    
+
+// Generate a random IP address
+// @description **Description:**
+// Generate a single random ip address
+// @description ---
+//
+// @description **Parameters:**
+// @description - none 
+// @description ---
+//
+// @description **Return:**
+// @return {string}
+// @description `number` Randomly generated IP Address
+// @description ---   
+//    
+// @description **Author:** Svarii
+// @description **Version:** 0.0.1
+// @description ---    
+//
+// @example randomIP = get_random_ip
+// @example
+// print(randomIP) // Output: ###.###.###.###
+	get_random_ip = function()
+	locals.generateRandomOctet = function()
+    	locals.binaryString = ""
+	    for i in range(8, 1)
+	        // Convert the random float to a binary digit using a threshold:
+	        if rnd() >= 0.5 then
+	            locals.binaryString = locals.binaryString + "1"
+	        else
+	            locals.binaryString = locals.binaryString + "0"
+	        end if
+	    end for
+	    return (0 + to_int(locals.binaryString[0])) * 128 +
+	           (0 + to_int(locals.binaryString[1])) * 64 +
+	           (0 + to_int(locals.binaryString[2])) * 32 +
+	           (0 + to_int(locals.binaryString[3])) * 16 +
+	           (0 + to_int(locals.binaryString[4])) * 8 +
+    	       (0 + to_int(locals.binaryString[5])) * 4 +
+        	   (0 + to_int(locals.binaryString[6])) * 2 +
+	           (0 + to_int(locals.binaryString[7]))
+	end function
+    locals.ipString = ""
+    for i in range(4, 1)
+        locals.octet = locals.generateRandomOctet()
+        // Only append a dot if there is already an octet in ipString.
+        if locals.ipString != "" then
+            locals.ipString = locals.ipString + "."
+        end if
+        locals.ipString = locals.ipString + str(locals.octet)
+    end for
+    return locals.ipString
+	end function
+// @startuml
+// start
+// :<color:purple>Define generateRandomOctet function</color>;
+// :<color:purple>binaryString = ""</color>;
+// :<color:blue>For i = 1 to 8</color>;
+// repeat
+//   if (<color:blue>rnd() >= 0.5?</color>) then (<color:green>Yes</color>)
+//     :<color:purple>binaryString = binaryString + "1"</color>;
+//   else (<color:red>No</color>)
+//     :<color:purple>binaryString = binaryString + "0"</color>;
+//   endif
+// repeat while (next bit)
+// :<color:purple>Calculate octet = (bit0 * 128) + (bit1 * 64) + (bit2 * 32) + (bit3 * 16) + (bit4 * 8) + (bit5 * 4) + (bit6 * 2) + (bit7)</color>;
+// :<color:green>return octet</color>;
+//
+// :<color:purple>Initialize ipString = ""</color>;
+// :<color:blue>For i = 1 to 4</color>;
+// repeat
+//   :<color:purple>octet = generateRandomOctet()</color>;
+//   if (<color:blue>ipString != ""?</color>) then (<color:green>Yes</color>)
+//     :<color:purple>ipString = ipString + "."</color>;
+//   endif
+//   :<color:purple>ipString = ipString + str(octet)</color>;
+// repeat while (next octet)
+// :<color:green>return ipString</color>;
+// stop
+// @enduml	
+
+
+// Pull whosis information from a public ip address
+	// @description **Description:**
+	// Return map with whois information
+	// @description ---
+	//
+	// @description **Parameters:**
+	// @param {string} routerPublicIPAddress
+	// @description - `routerPublicIPAddress`:`<string>`
+	//
+	// @description **Parameter Defaults:**
+	// @description - `none`
+	//
+	// @description **Return:**
+	// @return {map<string,string>}
+	// @description `map`:`whoisInfo`
+	// @description - `.admin`:`<string>` The administrative contacts' name
+	// @description - `.domain`:`<string>` The domain name of the ip address
+	// @description - `.email`:`<string>` The email address for the administrative contact
+	// @description - `.network`:`<string>` The network identifier (if any)
+	// @description - `.phone`:`<string>` The phone number for the administrative contract
+	// @description ---	
+	// @description - - `.error`:`<string>` {on error} will return obect with only this property
+	// @description ---
+	//    
+	// @description **Author:** Svarii
+	// @description **Version:** 0.0.1
+	// @description ---
+	// 
+	// @example whoisInfo = fetch_whois(params[0])
+	// @example
+	// print whoisInfo.domain
+	// @example
+	// print whoisInfo.admin
+	// @example
+	// print whoisInfo.email
+	// @example
+	// print whoisInfo.phone
+	// @example
+	// print whoisInfo.network
+fetch_whois = function(routerPublicIPAddress)
+	if not is_lan_ip(locals.routerPublicIPAddress) == true then
+		if is_valid_ip(routerPublicIPAddress) then
+			locals.whoisInfo = {"classID":"whoisInfo", "admin":"", "domain":"", "email":"", "network":"", "phone":"", "error":null}
+			locals.what = split(whois(locals.routerPublicIPAddress), "\n")
+			locals.whoisInfo.domain = str(split(locals.what[0], ":")[1]).trim
+			locals.whoisInfo.admin = str(split(locals.what[1], ":")[1]).trim
+			locals.whoisInfo.email = str(split(locals.what[2], ":")[1]).trim
+			locals.whoisInfo.phone = str(split(locals.what[3], ":")[1]).trim
+			if locals.what.len >= 5 then
+				locals.whoisInfo.network = str(split(locals.what[4], ":")[0]).trim
+			else
+				locals.whoisInfo.network = null
+			end if
+		else 
+			locals.whoisInfo = {"classID":"whoisInfo", "error":"Invalid Public IP Address Provided."}	
+		end if
+	else
+		locals.whoisInfo = {"classID":"whoisInfo", "error":"Needs Public IP, Provided Local IP." + locals.routerPublicIPAddress}
+	end if
+	locals.whoisInfo.error = false
+	return locals.whoisInfo
+end function
+
+map.get_port_info = function(portNumber)
+    if not typeof(self) == "router" then return "<#FF0000>Type Mismatch, object is not a router"
+    locals.portObject = self.ping_port(locals.portNumber)
+    if not typeof(locals.portObject) == "port" then return "<color=#FF0000>" + str(locals.portNumber).bold + " unreachable" + "</color>"
+    return self.port_info(locals.portObject)
+end function
+
+list.push_once = function(listItem)
+	if not self.hasIndex(self.indexOf(locals.listItem)) then
+		self.push(locals.listItem)
+	end if	
+end function
+
 
 // Applies size tag to the string
     // @description **Description:**
@@ -41,7 +1531,7 @@ bool_color = function(outputString, boolVar = false, boolColor = ["green", "red"
     end if
 end function
 
-lan_scan = function(targetLanIP)
+lan_scan = function(targetLanIP, targetLan = "0.0.0.0")
     locals.targetRouter = get_router(locals.targetLanIP)
     print info_string("Silver", "Network Scan".underline, "DeepPink")
     locals.lanScan = locals.targetRouter.devices_lan_ip
@@ -58,11 +1548,14 @@ lan_scan = function(targetLanIP)
                 locals.usedLanNumberPortList = []
                 locals.usedLanServiceList = []
                 for usedLanPort in locals.targetLanIPDevicePorts
-                    
                     locals.usedLanNumberPortList.push(locals.usedLanPort.port_number)
                     locals.usedLanServiceList.push(locals.targetRouter.get_port_info(locals.usedLanPort.port_number))
-                end for        
-                print char(09) + info_string("Silver", str(locals.lanComputer), ipColor) + " "*(15 - locals.lanComputer.len) + char(09) + info_string("Silver", str(locals.usedLanNumberPortList)) + " "*(30 - str(locals.usedLanNumberPortList).len) + info_string("Silver", str(locals.usedLanServiceList))
+                end for
+                if not lanComputer == targetLan then
+                    print char(09) + info_string("Silver", str(locals.lanComputer), ipColor) + " "*(15 - locals.lanComputer.len) + char(09) + info_string("Silver", str(locals.usedLanNumberPortList)) + " "*(30 - str(locals.usedLanNumberPortList).len) + info_string("Silver", str(locals.usedLanServiceList))
+                else
+                    print char(09) + info_string("Silver", str(locals.lanComputer).bold.underline, ipColor) + " "*(15 - locals.lanComputer.len) + char(09) + info_string("Silver", str(locals.usedLanNumberPortList)) + " "*(30 - str(locals.usedLanNumberPortList).len) + info_string("Silver", str(locals.usedLanServiceList))                    
+                end if
             //end if            
     end for   
 end function
@@ -87,163 +1580,169 @@ translate_serviceInfo = function(serviceInfoName)
     return serviceInfoName
 end function
 
-clear_screen
+// Applies mark tag to the string
+    // @description **Description:**
+    // @description Modifies a text string by wrapping it within the mspace tag
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @param {string} [monospace]
+    // @description - `monospace`:`string` | `Accepted values`: `em`, `px`, `%`
+    //
+    // @description **Parameter Defaults:**
+    // @description - `monospace`:`2.75em`
+    //
+    // @description **Return:**
+    // @return {string}
+    // @description `string` The string value wrapped within the `<mspace>` tag
+    // @description ---
+    //
+    // @description **Links:**
+    // @description - [Text Mesh Pro: Rich Text Monospacing](https://docs.unity3d.com/Packages/com.unity.textmeshpro@4.0/manual/RichTextMonospace.html)	
+    // @description ---	
+    //
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---
+    //
+    //  @example newString = "Hello"
+    //  @example 
+    //  @example result = newString.mspace
+    //  @example 
+    //  print(result); // Outputs: <mspace="2.75em">Hello</mspace>     
+string.mspace = function(monospace = "2.75em")
+    return "<mspace=" + locals.monospace + ">" + self + "</mspace>"
+end function   
 
-//******************************************        
-//Load variables and objects
-        knownLibs = ["aptclient.so", "blockchain.so", "init.so", "kernel_module.so", "kernel_router.so", "libadb.so", "libcam.so", "libchat.so", "libftp.so", "libhttp.so", "librepository.so", "libsmartappliance.so", "libsmtp.so", "libsql.so", "libssh.so", "libtrafficnet.so", "net.so", "crypto.so", "metaxploit.so", "librshell.so"]
-    //Load Shell
-        myShell = get_shell
-    //Load Computer
-        myComputer = myShell.host_computer
-    //Holds the string for manipulations 
-        outputBuffer = []
-    //Holds finalized strings awaiting print
-        outputStaging = []
-        targetLanIP = "0.0.0.0"
+// Keeps a number within a specified range
+	// @description **Description:**
+	// @description Ensure an number stays between a minimim and maximum value
+	// @description
+	//
+	// @description **Parameters:**
+    // @param {number} min - The min threshold.
+    // @param {number} max - The max threshold.    
+	// @description - `min` The min threshold.
+    // @description - `max` The max threshold.
+    //
+	// @description **Parameter Defaults:**
+    // @description - none
+    // @description
+    //
+	// @description **Return:**
+	// @return {number} he result of the clamp
+	// @description `number`
+	// @description
+	//
+	// @description **Author:** Svarii
+	// @description **Version:** 0.0.1
+	// @description
+	//
+	// @example myNumber = 42
+	// @example
+    // print myNumber.clamp(42, 100) // Return 42
+	// print myNumber.clamp(75, 100) // Return 75
+    // print myNumber.clamp(0, 40) // Return 40
+number.clamp = function(min, max)
+            if self < locals.min then return locals.min
+            if self > locals.max then return locals.max
+            return self
+end function
+// @startuml
+// title <color:purple>number.clamp Method Diagram</color>
+//
+// class NumberObject {
+//   + value : number
+//   + clamp(min: number, max: number) : number
+// }
+//
+// note bottom of NumberObject
+//   Limits the object's value within the specified range.
+//   Usage examples:
+//     • 7.clamp(2, 6) → 6  (value exceeds max; clamped to 6)
+//     • 1.clamp(2, 6) → 2  (value below min; clamped to 2)
+// end note
+//
+// @enduml
 
-//******************************************    
-//Check Input Paramaters
-        if params.len < 1 then
-            param1 = myComputer.local_ip
-            targetIP = param1
-        end if
-        if params.len >= 1 then
-            param1 = params[0]
-        end if
-        if params.len >= 2 then
-            param2 = params[1]
-        end if
-        if param1 == "update-database" then
-            get_shell.launch("/opt/cobra/bin/installer")
-            exit("Database Update Complete")
-        end if
-        if is_valid_ip(param1) then
-            targetIP = param1
-            if not(myShell.ping(targetIP)) then exit(info_string("Red", "Address Unreachable: " + targetIP.pos("25em"), "Crimson"))
-            if not is_lan_ip(param1) then
-                print info_string("LawnGreen", "Target WAN IP Loaded: " + targetIP.pos("25em"), "DodgerBlue")
-                if params.len >= 2 then
-                    if is_lan_ip(param2) then
-                        targetLanIP = param2
-                        print info_string("LawnGreen", "Target LAN IP Loaded: " + targetLanIP.pos("25em"), "DodgerBlue")
-                    else
-                        print info_string("LawnGreen", "Target Public IP : " + get_router(targetLanIP).public_ip.pos("25em"), "DodgerBlue")
-                    end if
+// Get Inbox Messages
+// @description **Description:**
+// @description Logs into the mail account and fetches inbox messages.
+// @description ---
+//
+// @description **Parameters:**
+// @param {string} [mailAddress]
+// @description - `mailAddress`:`string` | Optional. Defaults to `user_mail_address`
+// @param {string} [mailPass]
+// @description - `mailPass`:`string` | Optional. Defaults to `"mailpass"`
+//
+// @description **Parameter Defaults:**
+// @description - `mailAddress`:`user_mail_address`
+// @description - `mailPass`:`"mailpass"`
+//
+// @description **Return:**
+// @return {list<object>}
+// @description `list<map>`:`emailDetails`
+// @description - `.id`:`<string>` The email id
+// @description - `.from`:`<string>` The sender email address
+// @description - `.subject`:`<string>` The email subject
+// @description - `.body`:`list<string>` The email message
+// @description - `.contract`:`<boolean>` Is email a mission
+// @description - `.type` :`<string>` | `<null>` If mission, what type
+// @description - `.target_wan`:`<string>` | `<null>` Target Wan IP
+// @description - `.target_lan`:`<string>` | `<null>` Target Lan IP
+// @description - `.target_user`:`<string>` | `<null>` Target Username
+//
+// @description **Author:** Svarii
+// @description **Version:** 0.0.1
+// @description ---
+//
+// @example inbox = fetch_inbox("user@example.com", "mypassword")
+// @example print inbox[0].subject
+    fetch_inbox = function(mailAddress = user_mail_address, mailPass = null)
+        locals.objectList = []
+        if mailPass == null then return null
+            locals.metaMail = mail_login(locals.mailAddress, locals.mailPass)
+            emailObjectList = locals.metaMail.fetch
+        for emailObject in emailObjectList
+            locals.email = new {"classID":"eMail", "mailID": "", "from":"", "subject":"", "body":"", "type":null, "target_ip":"0.0.0.0", "target_lan":"0.0.0.0", "target_user":null, "target_category":null}
+            locals.email.mailID = (locals.emailObject.split(char(10)).crop)[0][8:]
+            locals.email.from = (locals.emailObject.split(char(10)).crop)[1][6:]
+            locals.email.subject = (locals.emailObject.split(char(10)).crop)[2][9:]
+            locals.email.body = (split(locals.metaMail.read(locals.email.mailID), char(10)).crop[2:].join(char(10)).replace(char(10)*2, char(10))).replace("\." + " ", char(10))            
+            if split(locals.email.body, char(10))[0].indexOf("academic") > 0 then locals.email.type = "Academic"
+            if split(locals.email.body, char(10))[0].indexOf("credentials") > 0 then locals.email.type = "Credentials"
+            if split(locals.email.body, char(10))[0].indexOf("police") > 0 then locals.email.type = "Police"
+            if split(locals.email.body, char(10))[0].indexOf("delete") > 0 then locals.email.type = "Delete"
+            if split(locals.email.body, char(10))[0].indexOf("corrupt") > 0 then locals.email.type = "Corrupt"
+            if split(locals.email.body, char(10))[0].indexOf("get") > 0 then locals.email.type = "Get"
+            locals.email.target_ip = slice(split(locals.email.body, char(10))[1], split(locals.email.body, char(10))[1].indexOf("<b>") + 3, split(locals.email.body, char(10))[1].indexOf("</b>"))
+            if locals.email.type == "Academic" then
+                locals.email.target_lan = slice(split(locals.email.body, char(10))[2], split(locals.email.body, char(10))[2].indexOf("<b>") + 3,split(locals.email.body, char(10))[2].indexOf("</b>"))
+                locals.email.target_user = slice(split(locals.email.body, char(10))[4], split(locals.email.body, char(10))[4].indexOf("<b>") + 3,split(locals.email.body, char(10))[4].indexOf("</b>"))
+            else if locals.email.type == "Credentials" then
+                locals.email.target_lan = slice(split(locals.email.body, char(10))[3], split(locals.email.body, char(10))[3].indexOf("<b>") + 3,split(locals.email.body, char(10))[3].indexOf("</b>"))
+                locals.email.target_user = slice(split(locals.email.body, char(10))[0], split(locals.email.body, char(10))[0].indexOf("<b>") + 3,split(locals.email.body, char(10))[0].indexOf("</b>"))
+                if locals.email.target_user.indexOf("login credentials of any user") > 0 then
+                    locals.email.target_user = "Any"
                 end if
-            else
-                targetLanIP = param1
-                if not is_valid_ip(targetLanIP) then targetLanIP = myComputer.local_ip
-                print info_string("LawnGreen", "Target Public IP : " + (get_router(myComputer.network_gateway).public_ip).pos("25em"), "DodgerBlue")
-                print info_string("LawnGreen", "Target LAN IP Loaded: " + targetLanIP.pos("25em"), "DodgerBlue")
+            else if locals.email.type == "Police" then
+                locals.email.target_category = slice(split(locals.email.body, char(10))[3], split(locals.email.body, char(10))[3].indexOf("<b>") + 3,split(locals.email.body, char(10))[3].indexOf("</b>"))
+                locals.email.target_user = slice(split(locals.email.body, char(10))[2], split(locals.email.body, char(10))[2].indexOf("<b>") + 3,split(locals.email.body, char(10))[2].indexOf("</b>"))
             end if
-        else
-            exit(info_string("Red", "Target IP is invalid: " + param1.pos("25em"), "Crimson"))
-        end if      
 
+            
+            if not is_lan_ip(locals.email.target_lan) then
+                //locals.email.target_lan = slice(split(locals.email.body, char(10))[3], split(locals.email.body, char(10))[3].indexOf("<b>") + 3,split(locals.email.body, char(10))[3].indexOf("</b>"))
+            end if
+            if not is_lan_ip(locals.email.target_lan) then
+                locals.email.target_lan = "0.0.0.0"
+            end if
+            locals.objectList.push(locals.email)
+        end for
+        return locals.objectList
+    end function       
 
- 
-
-portNumberList = []
-closedPortNumberList = []
-
-if not targetIP then targetIP = targetLanIP
-
-if not is_lan_ip(targetIP) then
-    targetRouter = get_router(targetIP)
-    for port in targetRouter.used_ports
-        if not port.is_closed then
-            portNumberList.push((port.port_number))
-        else
-            closedPortNumberList.push((port.port_number))
-        end if
-    end for    
-    if is_typeof(targetRouter, "router") then
-        print info_string("LawnGreen", "Target Router Loaded: " + (targetRouter.essid_name).pos("25em"), "DodgerBlue")
-        print info_string("LawnGreen", "Target Router Version: " + bool_color((targetRouter.kernel_version), (myComputer.File(home_dir + "/Database/kernel_router").get_files).hasIndex(targetRouter.kernel_version), ["MediumSpringGreen", "Crimson"]).pos("25em"))
-        if targetRouter.firewall_rules.len > 0 then
-            print info_string("Yellow", "Router Firewall Rules: " + str(targetRouter.firewall_rules).pos("25em"), "DodgerBlue")
-        else
-            print info_string("LawnGreen", "Router Firewall Rules: " + "None".pos("25em"), "LimeGreen")
-        end if
-        print info_string("LawnGreen", "Open Port List: " + str(portNumberList).pos("25em"), "DodgerBlue")
-        if closedPortNumberList.len > 0 then
-            print info_string("Red", "Closed Port List: " + str(closedPortNumberList).pos("25em"), "Crimson")
-        else
-            print info_string("LawnGreen", "Closed Ports: " + "None".pos("25em"), "LimeGreen")
-        end if
-    end if
-else
-    targetRouter = get_router()
-    for port in targetRouter.used_ports
-        if not port.is_closed == true then
-            portNumberList.push((port.port_number))
-        else
-            closedPortNumberList.push((port.port_number))            
-        end if
-    end for
-    if is_typeof(targetRouter, "router") then
-        print info_string("LawnGreen", "Local Router Loaded:  " + (targetRouter.essid_name).pos("25em"), "DodgerBlue")
-        print info_string("LawnGreen", "Target Router Version: " + (targetRouter.kernel_version).pos("25em"), "DodgerBlue")
-        if targetRouter.firewall_rules.len > 0 then
-            print info_string("Yellow", "Router Firewall Rules: " + str(targetRouter.firewall_rules).pos("25em"), "DodgerBlue")
-        else
-            print info_string("LawnGreen", "Router Firewall Rules: " + "None".pos("25em"), "LawnGreen")
-        end if
-        print info_string("LawnGreen", "Open Port List: " + str(portNumberList).pos("25em"), "DodgerBlue")
-        print info_string("Red", "Closed Port List: " + str(closedPortNumberList).pos("25em"), "Crimson")
-    end if
-    //check permission level
-    //if guest look for password file
-    //if user look for password files
-    //look for libs with version not in database and scan for exploits, make new exploit files, send exploit file home
-    //if root, add repo, install decipher, remove repo, decipher passwd, save password, remove decipher, do mission, corrupt logs, disconnect
-end if
-
-
-
-
-for portNumber in portNumberList
-    print info_string("Chartreuse", "Open Service on Port: " + str(portNumber) + targetRouter.get_port_info(portNumber).pos("25em"), "LimeGreen")
-    serviceInfo = split(targetRouter.get_port_info(portNumber), " ")
-    serviceDatabaseDirectoryLocation = home_dir + "/Database/" + translate_serviceInfo(serviceInfo[0])
-    serviceDatabaseDirectory = myComputer.File(serviceDatabaseDirectoryLocation)
-    if is_folder(serviceDatabaseDirectory) then
-        exploitFileVersionList = (serviceDatabaseDirectory.get_files).crop
-        if exploitFileVersionList.len > 0 then
-                infoColor = "Red"
-            for file in exploitFileVersionList
-                if file.name == serviceInfo[1] then
-                    infoColor = "LimeGreen"
-                end if
-            end for
-            print char(09)*2 + info_string(infoColor, translate_serviceInfo(serviceInfo[0]) +  " VER: " + serviceInfo[1])
-            exploitData = (split(file.get_content, char(10))).crop
-            for exploit in exploitData
-                exploitInfo = split(exploit, ",")
-                if exploitInfo[5] == "0" and exploitInfo[6] == "0" and exploitInfo[7] == "0" and exploitInfo[8] == "0" and exploitInfo[9] == "0" and exploitInfo[10] == "shell" then
-                    print char(09)*3 + exploit.color("WhiteSmoke").mark("#7CFC003C")
-                else if exploitInfo[5] == "0" and exploitInfo[6] == "0" and exploitInfo[7] == "0" and exploitInfo[8] == "0" and exploitInfo[9] == "0" and exploitInfo[10] == "computer" then
-                    print char(09)*3 + exploit.color("WhiteSmoke").mark("#00FF003C")
-                else
-                    print char(09)*3 + exploit.color("Yellow").size("50%")
-                end if
-                
-            end for
-        else
-            print char(09)*2 + info_string("Red", translate_serviceInfo(serviceInfo[0]) +  " VER: " + serviceInfo[1] + " Not Found: Try: cobra update-database")
-        end if
-    end if
-end for
-
-for portNumber in closedPortNumberList
-    print info_string("Crimson", "Closed Service on Port: " + str(portNumber) + targetRouter.get_port_info(portNumber).pos("25em"), "FireBrick")
-end for
-if not is_lan_ip(targetIP) then
-    lan_scan(targetIP)
-else
-    lan_scan(myComputer.network_gateway)
-end if
-
-              
-                        
+    four_columns = function(col1 = "", col2 = "", col3 = "", col4 = "")
+        return locals.col1.pos("1em") + locals.col2.pos("17em") + locals.col3.pos("33em") + locals.col4.pos("45em")
+    end function
