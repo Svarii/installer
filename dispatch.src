@@ -1,0 +1,202 @@
+import_code("/lib/cobra.so")
+
+
+    
+
+    inboxObjectList = fetch_inbox(user_mail_address, "mailpass")
+    selectedEmailIndex = 0
+    targetIP = "0.0.0.0"
+    targetLan = "0.0.0.0"
+    targetUser = "Any"
+    userInput = ""
+    targetRouter = null
+    myShell = get_shell
+    myComputer = myShell.host_computer
+    haveFile = false
+    scanLevel = "None"
+while not userInput == "Escape"
+clear_screen
+    print "<rotate=90>" + char(124)*125 + "</rotate>"
+    if scanLevel == "Stealth" then
+        print "[F1] Inbox   [F2] <b>Stealth Scan</b>   [F3] Active Scan   [F4] Deep Scan   [F5] Refresh Inbox      [F6] Exploit Database"
+    else if scanLevel == "Active" then
+        print "[F1] Inbox   [F2] Stealth Scan   [F3] <b>Active Scan</b>   [F4] Deep Scan   [F5] Refresh Inbox      [F6] Exploit Database"
+    else if scanLevel == "Deep" then
+        print "[F1] Inbox   [F2] Stealth Scan   [F3] Active Scan   [F4] <b>Deep Scan</b>   [F5] Refresh Inbox      [F6] Exploit Database"        
+    else
+        print "[F1] <b>Inbox</b>   [F2] Stealth Scan   [F3] Active Scan   [F4] Deep Scan   [F5] Refresh Inbox      [F6] Exploit Database"
+    end if
+
+    print "<rotate=90>" + char(124)*125 + "</rotate>"
+    for email in inboxObjectList
+    portNumberList = []
+    closedPortNumberList = []        
+        //if not email.type == null then
+			emailSummary = split(split(email.body,char(10))[0] ,"\. ")[0]
+			if emailSummary.indexOf(".") == emailSummary.len - 1 then
+				emailSummary = slice(emailSummary, 0, (emailSummary.len - 1))
+			end if
+			if not email.type == null then
+                if selectedEmailIndex == __email_idx then
+				    print "> " + four_columns(email.from.color("IndianRed"), str(email.type).color("LightSkyBlue"), emailSummary.color("WhiteSmoke")).mark("#E6E6FA3D")
+                else
+                    print four_columns(email.from.color("IndianRed"), str(email.type).color("LightSkyBlue"), emailSummary.color("WhiteSmoke"))
+                end if
+			else
+                if selectedEmailIndex == __email_idx then
+				    print "> " + four_columns(email.from.color("IndianRed"), str(email.subject).color("LightSkyBlue"), emailSummary.color("WhiteSmoke")).mark("#E6E6FA3D")
+                else
+                    print four_columns(email.from.color("IndianRed"), str(email.subject).color("LightSkyBlue"), emailSummary.color("WhiteSmoke"))
+                end if
+			end if
+        //end if
+        if __email_idx == selectedEmailIndex then targetIP = email.target_ip
+        if __email_idx == selectedEmailIndex then targetLan = email.target_lan
+        if __email_idx == selectedEmailIndex then targetUser = email.target_user
+    end for
+    print "<rotate=90>" + char(124)*4 + "</rotate> <mark=#0000003D><color=#FF00FF>" + targetIP.bold + ":</color><color=yellow>" + targetLan.bold + "</color></mark> <rotate=90>" + char(124)*(125 - (targetIP.len + 5) - (targetLan.len + 2) - 11 + 9) + "</rotate>"
+    print "="*4 + " " + targetUser
+    if scanLevel == "None" then
+    for line in split(inboxObjectList[selectedEmailIndex].body,char(10))
+        lineColor = "LawnGreen"
+        if line == "It's important that you access the correct machine behind the public ip" then lineColor = "Yellow"
+        if not line.indexOf("The remote ip of the victim is") == null then
+            lineColor = "Red"
+        end if
+        if not line.indexOf("LAN") == null then lineColor = "Goldenrod"
+        if lineColor == "Red" then
+            print char(09) +("* <mark=#DC143C3D>" + line.color("WhiteSmoke") + "</mark>")
+        else if lineColor == "Goldenrod" then
+            print char(09) + ("* <mark=#DAA5203D>" + line.color("WhiteSmoke") + "</mark>")
+        else
+            print char(09) + ("* " + line.color(lineColor))
+        end if
+    end for
+    print "<rotate=90>" + char(124)*125 + "</rotate>"
+    end if
+
+
+
+    if is_valid_ip(targetIP) then
+        if not is_lan_ip(targetIP) then
+            targetRouter = get_router(targetIP)
+        end if
+    end if
+
+    if scanLevel == "Stealth" then
+if not is_lan_ip(targetIP) then
+    targetRouter = get_router(targetIP)
+    for port in targetRouter.used_ports
+        if not port.is_closed then
+            portNumberList.push_once((port.port_number))
+        else
+            closedPortNumberList.push_once((port.port_number))
+        end if
+    end for    
+    if is_typeof(targetRouter, "router") then
+        print info_string("LawnGreen", "Target Router: " + (targetRouter.essid_name).pos("15em"), "DodgerBlue") +
+            info_string("LawnGreen", "Version " + bool_color((targetRouter.kernel_version), (myComputer.File(home_dir + "/Database/kernel_router").get_files).hasIndex(targetRouter.kernel_version), ["MediumSpringGreen", "Crimson"]).pos("40em"))
+        if targetRouter.firewall_rules.len > 0 then
+            print info_string("Yellow", "Router Firewall Rules: " + str(targetRouter.firewall_rules).pos("25em"), "DodgerBlue")
+        else
+            print info_string("LawnGreen", "Router Firewall Rules: " + "None".pos("25em"), "LimeGreen")
+        end if
+        print info_string("LawnGreen", "Open Port List: " + str(portNumberList).pos("25em"), "DodgerBlue")
+        if closedPortNumberList.len > 0 then
+            print info_string("Red", "Closed Port List: " + str(closedPortNumberList).pos("25em"), "Crimson")
+        else
+            print info_string("LawnGreen", "Closed Ports: " + "None".pos("25em"), "LimeGreen")
+        end if
+    end if
+else
+    targetRouter = get_router()
+    for port in targetRouter.used_ports
+        if not port.is_closed == true then
+            portNumberList.push((port.port_number))
+        else
+            closedPortNumberList.push((port.port_number))            
+        end if
+    end for
+    if is_typeof(targetRouter, "router") then
+        print info_string("LawnGreen", "Local Router Loaded:  " + (targetRouter.essid_name).pos("25em"), "DodgerBlue")
+        print info_string("LawnGreen", "Target Router Version: " + (targetRouter.kernel_version).pos("25em"), "DodgerBlue")
+        if targetRouter.firewall_rules.len > 0 then
+            print info_string("Yellow", "Router Firewall Rules: " + str(targetRouter.firewall_rules).pos("25em"), "DodgerBlue")
+        else
+            print info_string("LawnGreen", "Router Firewall Rules: " + "None".pos("25em"), "LawnGreen")
+        end if
+        print info_string("LawnGreen", "Open Port List: " + str(portNumberList).pos("25em"), "DodgerBlue")
+        print info_string("Red", "Closed Port List: " + str(closedPortNumberList).pos("25em"), "Crimson")
+    end if
+    //check permission level
+    //if guest look for password file
+    //if user look for password files
+    //look for libs with version not in database and scan for exploits, make new exploit files, send exploit file home
+    //if root, add repo, install decipher, remove repo, decipher passwd, save password, remove decipher, do mission, corrupt logs, disconnect
+end if        
+        lan_scan(targetIP, targetLan)
+    end if
+
+
+
+
+    
+//    print "[*] Database file located at " + (home_dir + "/Database/" + metaLibName + "/" + metaLibVersion).color("Gold")    
+    print char("")
+    userInput = user_input("",false,true)
+    if userInput == "F1" then
+        scanLevel = "None"
+    end if    
+    if userInput == "F2" then
+        scanLevel = "Stealth"
+    end if
+    if userInput == "F3" then
+        scanLevel = "Active"
+    end if
+    if userInput == "F4" then
+        scanLevel = "Deep"
+    end if    
+
+    selectedEmailIndex = user_navigation(selectedEmailIndex, userInput).clamp(0, inboxObjectList.len - 1)
+
+
+
+end while
+
+exit
+
+        exploitFile = myComputer.File(home_dir + "/Database/kernel_router/" + targetRouter.kernel_version)
+            if exploitFile == null then
+                print "[" + "*".color("Red") + "] " + "Database file not found".color("WhiteSmoke")
+                haveFile = false
+            else
+                print "[" + "*".color("LimeGreen") + "] " + "Database file found".color("WhiteSmoke")
+                haveFile = true
+            end if
+
+        //Load exploit database for specified lib
+        print "[" + "*".color("Yellow") + "] " + "Loading file from " + exploitFile.path
+        exploitDataString = exploitFile.get_content
+        exploitDataList = (split(exploitDataString, char(10))).crop
+        reqList = []
+        
+
+        for exploit in exploitDataList
+            exploitInfo = split(exploit, ",")
+            exploitObject = {"classID": "exploitRequirments", "metaLibName":exploitInfo[0], "version":exploitInfo[1], "is_patched":to_int(exploitInfo[2]), "address":exploitInfo[3], "variable":to_int(exploitInfo[4]), "cra":to_int(exploitInfo[5]), "cga":to_int(exploitInfo[6]), "cua":to_int(exploitInfo[7]), "rur":to_int(exploitInfo[8]), "rpf":to_int(exploitInfo[9]), "objectType":exploitInfo[10], "privs":exploitInfo[11]}
+            reqList.push(exploitObject)
+        end for
+        metaLibName = exploitFile.parent.name
+        metaLibVersion = exploitFile.name
+    print(("Lib Name" + "Version".pos("8em") + "Variable".pos("14em") + "Address".pos("25em") +  "AR".pos("35em") + "AU".pos("40em") + "AG".pos("45em") + "PF".pos("50em") + "UR".pos("55em") + "Type".pos("60em") + "Privs".pos("65em")).color("WhiteSmoke").underline)
+    for exploitFound in reqList
+        if haveFile == true then
+            print "[" + "*".color("DodgerBlue") + "] " + metaLibName.remove("lib").remove("sitory").remove("appliance").replace("trafficnet", "traffic").replace("metaxploit", "metax").replace("blockchain", "block").replace("kernel_", "ker_") + (exploitFound.version).pos("8em") + (exploitFound.variable).size("65%").pos("14em") + (exploitFound.address).size("65%").pos("25em") + (bool_text(exploitFound.cra, ["true", "false"], ["red","green"])).pos("35em") + (bool_text(exploitFound.cua, ["true", "false"], ["red","green"])).pos("40em") + (bool_text(exploitFound.cga, ["true", "false"], ["red","green"])).pos("45em") + (str(exploitFound.rpf)).pos("50em") + (str(exploitFound.rur)).pos("55em") + (exploitFound.objectType).pos("60em") + (exploitFound.privs).pos("65em")
+        else
+            print "[" + "*".color("DodgerBlue") + "] " + metaLibName + (exploitFound.version).pos("8em") + (exploitFound.variable).size("65%").pos("14em") + (exploitFound.address).size("65%").pos("25em") + (bool_text(exploitFound.cra, ["true", "false"], ["red","green"])).pos("35em") + (bool_text(exploitFound.cua, ["true", "false"], ["red","green"])).pos("40em") + (bool_text(exploitFound.cga, ["true", "false"], ["red","green"])).pos("45em") + (str(exploitFound.rpf)).pos("50em") + (str(exploitFound.rur)).pos("55em") + str(exploitFound.objectType).pos("60em") + str(exploitFound.privs).pos("65em")
+        end if
+        wait(0.1)
+        //print metaLibName.pos("1em") + exploitFound.variable + " @ " + exploitFound.address  + char(09) + "<color=white>MetaLib: ".bold + char(09) + "<color=white>Version: ".bold + exploitFound.version + char(09) + "<color=white>Patched: ".bold + bool_text(exploitFound.is_patched, ["true", "false"], ["red","green"])
+        
+        //print((bool_text(exploitFound.cra, ["true", "false"], ["red","green"])).pos("8em") + (bool_text(exploitFound.cua, ["true", "false"], ["red","green"])).pos("14em") + (bool_text(exploitFound.cga, ["true", "false"], ["red","green"])).pos("20em") + (bool_text(exploitFound.rpf, ["true", "false"], ["red","green"])).pos("26em") + (bool_text(exploitFound.rur, ["true", "false"], ["red","green"])).pos("32em"))
+    end for
