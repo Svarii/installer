@@ -1,30 +1,3 @@
-//***********************************
-// Prototype Functions
-//***********************************
-    //***********************************
-    // prepare_output
-    //***********************************
-        prepare_output = function(outputBufferList)
-            for output in locals.outputBufferList
-                if locals.replaceText == false then
-                    globals.outputBuffer.push(locals.output)
-                end if
-            end for
-        end function
-    //***********************************
-    // process_output
-    //***********************************
-        process_output = function(outputList, replaceText = false)
-            for output in locals.outputList
-                if locals.replaceText == false then
-                    print(locals.output)
-                else
-                    print(locals.output, true)
-                end if
-            wait(0.1)
-            end for
-            globals.outputBuffer = []
-        end function
     //***********************************
     // info_string
     //      requires
@@ -35,12 +8,34 @@
             return "[" + "*".color(locals.starColor) + "] " + infoString.color(locals.textColor)
         end function
 
+    //*********************************************************
+    //***             Experimental Functions                ***
+    //*********************************************************
+    four_columns = function(col1 = "", col2 = "", col3 = "", col4 = "")
+            return col1.pos("1em") + col2.pos("17em") + col3.pos("33em") + col4.pos("45em")
+        end function
+        
+        user_navigation = function (numberIndex, userInput, inputOption)
+            indexChange = numberIndex
+            if locals.userInput == inputOption[0] then
+                locals.indexChange = locals.indexChange - 1
+            end if
+            if locals.userInput == inputOption[1] then
+                locals.indexChange = locals.indexChange + 1
+            end if
+            return locals.indexChange
+        end function
+
 dir_exists = function(directoryLocationString)
     if is_folder(get_shell.host_computer.File(locals.directoryLocationString)) then
         return true
     else
         return false
     end if
+end function
+
+map.dir_exists = function(directoryLocationString)
+    return is_folder(self.File(directoryLocationString))
 end function
 
 mark_text = function(textToMark, boolVal = false)
@@ -82,6 +77,39 @@ find_service = function(serviceName, aptLibLocation = "/lib/aptclient.so", amoun
         randomIP = get_random_ip
     end while
 end function
+
+// Applies rotate tag to the string
+    // @description **Description:**
+    // @description Modifies a text string by wrapping it within the rotate tag
+    // @description ---
+    //
+    // @description **Parameters:**
+    // @description * `degreesRotation`:`string`
+    //
+    // @description **Default Parameters:**
+    // @description * `degreesRotation`:`"45"`
+    //
+    // @description **Return:**
+    // @return {string}
+    // @description `string` The string rotated with the `<rotate>` tag
+    // @description ---
+    //
+    // @description **Links:**
+    // @description - [Text Mesh Pro: Rotate](https://docs.unity3d.com/Packages/com.unity.textmeshpro@4.0/manual/RichTextRotate.html)	
+    // @description ---	
+    //
+    // @description **Author:** Svarii
+    // @description **Version:** 0.0.1
+    // @description ---
+    //
+    //  @example newString = "Hello"
+    //  @example 
+    //  @example result = newString.rotate
+    //  @example 
+    //  print(result); // Output: <rotate="45">Hello </rotate>
+        string.rotate = function(degreesRotation = "45")
+            return "<rotate=" + char(34) + locals.degreesRotation + char(34) + ">" + self + "</rotate>"
+        end function 
 
 // load a library with 
     // @description **Description:**
@@ -166,18 +194,6 @@ end function
             if globals.params[0] == "-h" or globals.params[0] == "--help" then exit locals.usage
             if globals.params.len < locals.minReqParams then exit locals.usage
         end function
-
-    user_navigation = function (numberIndex, userInput, waitTime = 0.3)
-        indexChange = numberIndex
-        if locals.userInput == "UpArrow" then
-            locals.indexChange = locals.indexChange - 1
-        end if
-        if locals.userInput == "DownArrow" then
-            locals.indexChange = locals.indexChange + 1
-        end if
-        wait(waitTime)
-        return locals.indexChange
-    end function 
     // @startuml
     // start
     // if (<color:blue>params.len < 1?</color>) then (<color:red>Yes</color>)
@@ -476,6 +492,8 @@ end function
     // @description **Parameters:**
     // @param {flag} boolVal
     // @description - `boolVal`:`<flag>`
+    // @param {list<string>} text
+    // @param {list<string>} colors    
     //
     // @description **Parameter Defaults:**
     // @description - `none`
@@ -1531,42 +1549,7 @@ bool_color = function(outputString, boolVar = false, boolColor = ["green", "red"
     end if
 end function
 
-lan_scan = function(targetLanIP, targetLan = "0.0.0.0", selectedIndex = 0)
-    locals.targetRouter = get_router(locals.targetLanIP)
-    print info_string("Silver", "Network Scan".underline, "DeepPink")
-    locals.lanScan = locals.targetRouter.devices_lan_ip
-    for lanComputer in locals.lanScan
-        locals.ipColor = "HotPink"
-        locals.localIPTargetMatchFound = false
-        if locals.lanComputer == locals.targetLanIP then
-            locals.ipColor = "MediumSpringGreen"
-            locals.localIPTargetMatchFound
-        end if
-            //if ipColor == "MediumSpringGreen" then
-                locals.targetLanIPDevicePorts = locals.targetRouter.device_ports(locals.lanComputer)
-                //usedLanPortObjectList = []
-                locals.usedLanNumberPortList = []
-                locals.usedLanServiceList = []
-                for usedLanPort in locals.targetLanIPDevicePorts
-                    locals.usedLanNumberPortList.push(locals.usedLanPort.port_number)
-                    locals.usedLanServiceList.push(locals.targetRouter.get_port_info(locals.usedLanPort.port_number))
-                end for
-                if not lanComputer == targetLan and not lanComputer == locals.lanComputer then
-                    if __lanComputer_idx == selectedIndex then
-                        print char(09) + "<mark=#2E8D992D>" + info_string("Silver", str(locals.lanComputer), ipColor) + " "*(15 - locals.lanComputer.len) + char(09) + info_string("Silver", str(locals.usedLanNumberPortList)) + " "*(30 - str(locals.usedLanNumberPortList).len) + info_string("Silver", str(locals.usedLanServiceList) + "</mark>")
-                    else
-                        print char(09) + info_string("Silver", str(locals.lanComputer), ipColor) + " "*(15 - locals.lanComputer.len) + char(09) + info_string("Silver", str(locals.usedLanNumberPortList)) + " "*(30 - str(locals.usedLanNumberPortList).len) + info_string("Silver", str(locals.usedLanServiceList))
-                    end if
-                else
-                    if __lanComputer_idx == selectedIndex then
-                        print char(09) + "<mark=#2E8D992D>" + info_string("Silver", str(locals.lanComputer).bold.underline, ipColor) + " "*(15 - locals.lanComputer.len) + char(09) + info_string("Silver", str(locals.usedLanNumberPortList)) + " "*(30 - str(locals.usedLanNumberPortList).len) + info_string("Silver", str(locals.usedLanServiceList) + "</mark>")
-                    else
-                        print char(09) + info_string("Silver", str(locals.lanComputer).bold.underline, ipColor) + " "*(15 - locals.lanComputer.len) + char(09) + info_string("Silver", str(locals.usedLanNumberPortList)) + " "*(30 - str(locals.usedLanNumberPortList).len) + info_string("Silver", str(locals.usedLanServiceList))                    
-                    end if
-                end if
-            //end if            
-    end for   
-end function
+
 
 translate_serviceInfo = function(serviceInfoName)
     if locals.serviceInfoName == "http" then return "libhttp"
@@ -1749,284 +1732,359 @@ end function
             locals.objectList.push(locals.email)
         end for
         return locals.objectList
-    end function       
+    end function     
 
-    four_columns = function(col1 = "", col2 = "", col3 = "", col4 = "")
-        return locals.col1.pos("1em") + locals.col2.pos("17em") + locals.col3.pos("33em") + locals.col4.pos("45em")
-    end function
-
-
-
-
- 
-normalize = function(obj)
-    if typeof(obj) == "shell" then return obj.host_computer.File("/")
-    if typeof(obj) == "computer" then return obj.File("/")
-    if typeof(obj) == "file" then
-        while obj.parent
-            obj = obj.parent
-        end while
-        return obj
-    end if
-end function 
-
-// Get Object Object Owner
-    // @description **Description:**
-    // @description Determine the permission level of an object
-    // @description ---
-    //
-    // @description **Parameters:**
-    // @param {map<string,method>} overflowObject
-    // @description - `obj`:`<object>` The object to test
-    //
-    // @description **Return:**
-    // @return {string}
-    // @description `string` as `"root"`, `"guest"`, or `"{user_name}"`
-    // @description ---
-    //    
-    // @description **Author:** Tanshy
-    // @description **Version:** 0.0.1
-    // @description --- 
-    //
-    // @example objectOwnerString = check_user(obj)
-        check_user = function(obj)
-            fs_root = normalize(obj)
-            if not fs_root then return 
-            for folder in fs_root.get_folders
-                if folder.name != "root" then continue 
-                if folder.has_permission("w") and folder.has_permission("x") then return "root"
-                break
-            end for
-            for folder in fs_root.get_folders
-                if folder.name != "home" then continue 
-                for user in folder.get_folders
-                    if user.name == "guest" then continue 
-                    if user.has_permission("w") then return user.name
-                end for
-                break
-            end for
-            return "guest"
-        end function
-
-
-    inboxObjectList = fetch_inbox(user_mail_address, "mailpass")
-    selectedEmailIndex = 0
-    targetIP = "0.0.0.0"
-    targetLan = "0.0.0.0"
-    targetUser = "Any"
-    userInput = ""
-    targetRouter = null
+string.nullToUnknown = function()
+    if self.upper == "NULL" then return "Unknown"
+    return self
+end function
+translate_serviceInfo = function(serviceInfoName)
+    if locals.serviceInfoName == "http" then return "libhttp"
+    if locals.serviceInfoName == "ftp" then return "libftp"
+    if locals.serviceInfoName == "smtp" then return "libsmtp"
+    if locals.serviceInfoName == "ssh" then return "libssh"
+    if locals.serviceInfoName == "rshell" then return "librshell"
+    if locals.serviceInfoName == "cam" then return "libcam"
+    if locals.serviceInfoName == "ssh" then return "libssh"
+    if locals.serviceInfoName == "trafficnet" then return "libtrafficnet"
+    if locals.serviceInfoName == "sql" then return "libsql"
+    if locals.serviceInfoName == "chat" then return "libchat"
+    if locals.serviceInfoName == "repository" then return "librepository"
+    if locals.serviceInfoName == "smartappliance" then return "libsmartappliance"
+    if locals.serviceInfoName == "bank_account" then return "libssh"
+    if locals.serviceInfoName == "criminals" then return "libssh"
+    if locals.serviceInfoName == "employees" then return "libssh"
+    if locals.serviceInfoName == "students" then return "libssh"
+    return serviceInfoName
+end function
+//******************************************************************
+//*** Set Variables
+//******************************************************************
     myShell = get_shell
     myComputer = myShell.host_computer
-    haveFile = false
-    scanLevel = "None" //This has been repurposed to viewpoint
-    selectedLanIndex = 0
+    usageInfo = "Usage: ".bold + program_name + " mailpass"
+    userInput = ""
+    windowStart = 0
+    windowStart2 = 0
+    windowStart3 = 0
+    windowStart4 = 0
+    windowSize = 7
+    selectedIndex_Window = 0
+    selectedIndex_Email = 0
+    selectedIndex_Lan = 0
+    selectedIndex_Port = 0
+    selectedIndex_Exploit = 0
+    outputBuffer_Inbox = []
+    outputBuffer_MainMenu = []
+    outputStaging = []
+    lanDevicePortObjectList = []
+    targetLanIPList = []
 
+//******************************************************************
+//*** Check Startup Requirements
+//******************************************************************
+    if not params.len >= 1 then exit usageInfo
+
+//******************************************************************
+//*** Exploit Database Lookup Function
+//******************************************************************
+    checkLocalExploits = function(libName, libVersion)
+        dbPath = home_dir + "/Database/Exploits/" + libName + "/" + libVersion
+        dbFile = myComputer.File(dbPath)
+        if not dbFile then return null
+        
+        lines = dbFile.get_content.split(char(10))
+        foundExploits = []
+        for line in lines
+            if line.trim == "" then continue
+            parts = line.split(",")
+            if parts.len < 12 then continue
+            
+            exploitMap = {}
+            exploitMap.is_patched = parts[2]
+            exploitMap.mem        = parts[3]
+            exploitMap.var        = parts[4]
+            exploitMap.returns    = parts[10] // Object returned
+            exploitMap.privilege  = parts[11] // Permission level
+            foundExploits.push(exploitMap)
+        end for
+        return foundExploits
+    end function
+
+//******************************************************************
+//*** Load Inbox
+//******************************************************************
+    emailObjectList = fetch_inbox(user_mail_address, params[0])
 
 while not userInput == "Escape"
-    //clear_screen
-    // Clear the output buffer lists
-        output_Staging = []
-        output_MainMenu = []
-        output_Inbox = []
-        output_Email = []
-        output_TargetInfo = []
-        output_StealthScan = []
-        output_ActiveScan = []
-        output_ExploitDatabase = []
+    startTime = time()
+    outputBuffer_Inbox = []
+    outputBuffer_MainMenu = []
+    outputStaging = []
 
-    
-    // Construct the Main Menu
-        output_MainMenu.push("<rotate=90>" + char(124)*125 + "</rotate>")
-        if scanLevel == "Stealth" then
-            output_MainMenu.push("[F1] Inbox   [F2] <b>Stealth Scan</b>   [F3] Active Scan   [F4] Change Target   [F5] Open Website      [F6] Open Router Backend")
-        else if scanLevel == "Active" then
-            output_MainMenu.push("[F1] Inbox   [F2] Stealth Scan   [F3] <b>Active Scan</b>   [F4] Change Target   [F5] Open Website      [F6] Open Router Backend")
-        else if scanLevel == "Deep" then
-            output_MainMenu.push("[F1] Inbox   [F2] Stealth Scan   [F3] Active Scan   [F4] <b>Change Target</b>   [F5] Open Website      [F6] Open Router Backend")
-        else
-            output_MainMenu.push("[F1] <b>Inbox</b>   [F2] Stealth Scan   [F3] Active Scan   [F4] Change Target   [F5] Open Website      [F6] Open Router Backend")
-        end if
-
-    for email in inboxObjectList
-    portNumberList = []
-    
-    closedPortNumberList = []        
-        //if not email.type == null then
-			emailSummary = split(split(email.body,char(10))[0] ,"\. ")[0]
-			if emailSummary.indexOf(".") == emailSummary.len - 1 then
-				emailSummary = slice(emailSummary, 0, (emailSummary.len - 1))
-			end if
-			if not email.type == null then
-                if selectedEmailIndex == __email_idx then
-				    output_Inbox.push("> " + four_columns(email.from.color("IndianRed"), str(email.type).color("LightSkyBlue"), emailSummary.color("WhiteSmoke")).mark("#E6E6FA3D"))
-                else
-                    output_Inbox.push(four_columns(email.from.color("IndianRed"), str(email.type).color("LightSkyBlue"), emailSummary.color("WhiteSmoke")))
-                end if
-			else
-                if selectedEmailIndex == __email_idx then
-				    output_Inbox.push("> " + four_columns(email.from.color("IndianRed"), str(email.subject).color("LightSkyBlue"), emailSummary.color("WhiteSmoke")).mark("#E6E6FA3D"))
-                else
-                    output_Inbox.push(four_columns(email.from.color("IndianRed"), str(email.subject).color("LightSkyBlue"), emailSummary.color("WhiteSmoke")))
-                end if
-			end if
-        //end if
-        if __email_idx == selectedEmailIndex then targetIP = email.target_ip
-        if __email_idx == selectedEmailIndex then targetLan = email.target_lan
-        if __email_idx == selectedEmailIndex then targetUser = email.target_user
-        if __email_idx == selectedEmailIndex then
-            whoisInfo = fetch_whois(targetIP)
-        end if
-    end for
-    output_TargetInfo.insert(0, "<rotate=90>" + char(124)*4 + "</rotate> <mark=#0000003D><color=#FF00FF>" + targetIP.bold + ":</color><color=yellow>" + targetLan.bold + "</color></mark> <rotate=90>" + char(124)*(125 - (targetIP.len + 5) - (targetLan.len + 2) - 11 + 9) + "</rotate>")
-    output_TargetInfo.insert(0, "<rotate=90>" + char(124)*4 + "</rotate> <mark=#0000003D><color=#FF00FF>" + whoisInfo.admin + ":</color><color=yellow>" + whoisInfo.email + "</color></mark> "  + char(09) + whoisInfo.domain + "<rotate=90>" + char(124)*(100 - (whoisInfo.admin.len + 5) - (whoisInfo.email.len + 2) - 11 + 9) + "</rotate>")
-    output_Inbox.push("<rotate=90>" + char(124)*125 + "</rotate>")
-
-   
-
-    print "="*4 + " " + targetUser
-    if scanLevel == "None" then
-    for line in split(inboxObjectList[selectedEmailIndex].body,char(10))
-        lineColor = "LawnGreen"
-        if line == "It's important that you access the correct machine behind the public ip" then lineColor = "Yellow"
-        if not line.indexOf("The remote ip of the victim is") == null then
-            lineColor = "Red"
-        end if
-        if not line.indexOf("LAN") == null then lineColor = "Goldenrod"
-        if lineColor == "Red" then
-            output_Email.push(char(09) +("* <mark=#DC143C3D>" + line.color("WhiteSmoke") + "</mark>"))
-        else if lineColor == "Goldenrod" then
-            output_Email.push(char(09) + ("* <mark=#DAA5203D>" + line.color("WhiteSmoke") + "</mark>"))
-        else
-            output_Email.push(char(09) + ("* " + line.color(lineColor)))
-        end if
-    end for
-    output_Email.push("<rotate=90>" + char(124)*125 + "</rotate>")
-    end if
-
-    
-
-
-
-    if is_valid_ip(targetIP) then
-        if not is_lan_ip(targetIP) then
-            targetRouter = get_router(targetIP)
-        end if
-    end if
-
-    if scanLevel == "Stealth" then
+    //**************************************************************
+    //*** Fetch Target Data & Router Info
+    //**************************************************************
+        email = emailObjectList[selectedIndex_Email]
+        targetIP = email.target_ip
+        targetLan = email.target_lan
+        targetUser = email.target_user
         targetRouter = get_router(targetIP)
-if not is_lan_ip(targetIP) and is_typeof(targetRouter, "router") == true then
-    for port in targetRouter.used_ports
-        if not port.is_closed then
-            portNumberList.push_once((port.port_number))
+
+        if typeof(targetRouter) == "router" then 
+            targetLanIPList = targetRouter.devices_lan_ip
         else
-            closedPortNumberList.push_once((port.port_number))
-        end if
-    end for    
-    if is_typeof(targetRouter, "router") then
-        output_StealthScan.push("<rotate=90>" + char(124)*4 + "</rotate> <mark=#0000003D><color=#FF00FF>" + targetRouter.essid_name + ":</color><color=yellow>" + targetRouter.kernel_version + "</color></mark> "  + char(09) + targetRouter.firewall_rules.join(", ") + char(09) + "[" + portNumberList.join("] [").trim + char(09) + "] *[" + closedPortNumberList.join("] [") + "]<rotate=90>" + char(124)*(100 - (targetRouter.essid_name.len + 5) - (targetRouter.kernel_version.len + 2) - 11 + 9) + "</rotate>")
-    end if
-else
-    targetRouter = get_router()
-    for port in targetRouter.used_ports
-        if not port.is_closed == true then
-            portNumberList.push((port.port_number))
-        else
-            closedPortNumberList.push((port.port_number))            
-        end if
-    end for
-    if is_typeof(targetRouter, "router") then
-        output_StealthScan.push("<rotate=90>" + char(124)*4 + "</rotate> <mark=#0000003D><color=#FF00FF>" + targetRouter.essid_name + ":</color><color=yellow>" + targetRouter.kernel_version + "</color></mark> "  + char(09) + targetRouter.firewall_rules.join(", ") + char(09) + "[" + portNumberList.join("] [").trim + char(09) + "] *[" + closedPortNumberList.join("] [") + "]<rotate=90>" + char(124)*(100 - (targetRouter.essid_name.len + 5) - (targetRouter.kernel_version.len + 2) - 11 + 9) + "</rotate>")
-    end if
-    //check permission level
-    //if guest look for password file
-    //if user look for password files
-    //look for libs with version not in database and scan for exploits, make new exploit files, send exploit file home
-    //if root, add repo, install decipher, remove repo, decipher passwd, save password, remove decipher, do mission, corrupt logs, disconnect
-end if        
-
-    end if
-
-        print(output_MainMenu.join(char(10)), true)
-        if scanLevel == "None" then
-            print(output_TargetInfo.join(char(10)), true)
-            print(output_Inbox.join(char(10)), true)
-            print(output_Email.join(char(10)), true)
-         end if
-        if scanLevel == "Stealth" then
-            print(output_TargetInfo.join(char(10)), true)
-            print(output_StealthScan.join(char(10)), true)
-            lan_scan(targetIP, targetLan, selectedLanIndex)
+            targetLanIPList = []
         end if
 
+    //**************************************************************
+    //*** Port Scan Logic (Column 3 Data Prep)
+    //**************************************************************
+        currentScanIP = targetIP
+        if selectedIndex_Window >= 1 and targetLanIPList.len > 0 then
+            tempIdx = selectedIndex_Lan
+            if tempIdx >= targetLanIPList.len then tempIdx = targetLanIPList.len - 1
+            if tempIdx < 0 then tempIdx = 0
+            currentScanIP = targetLanIPList[tempIdx]
+        end if
 
+        lanDevicePortObjectList = []
+        if typeof(targetRouter) == "router" then
+            ports = targetRouter.device_ports(currentScanIP)
+            if typeof(ports) == "list" then lanDevicePortObjectList = ports
+        end if
 
-    userInput = user_input(char(0),false,true)
-    if userInput == "F1" then
-        scanLevel = "None"
-    end if    
-    if userInput == "F2" then
-        scanLevel = "Stealth"
-    end if
-    if userInput == "F3" then
-        scanLevel = "Active"
-    end if
-    if userInput == "F4" then
-        scanLevel = "Deep"
-    end if    
-    if userInput == "F5" then
-        myShell.launch("/usr/bin/Browser.exe", targetIP + ":80")
-    end if
-    if userInput == "F6" then
-        myShell.launch("/usr/bin/Browser.exe", myComputer.network_gateway + ":8080")
-    end if
-    
-    if scanLevel == "None" then
-        selectedEmailIndex = user_navigation(selectedEmailIndex, userInput).clamp(0, inboxObjectList.len - 1)
-    end if
-    if scanLevel == "Stealth" then
-        selectedLanIndex = user_navigation(selectedLanIndex, userInput).clamp(0, inboxObjectList.len - 1)
-    end if    
-
-
-
-end while
-
-exit
-
-        exploitFile = myComputer.File(home_dir + "/Database/kernel_router/" + targetRouter.kernel_version)
-            if exploitFile == null then
-                print "[" + "*".color("Red") + "] " + "Database file not found".color("WhiteSmoke")
-                haveFile = false
-            else
-                print "[" + "*".color("LimeGreen") + "] " + "Database file found".color("WhiteSmoke")
-                haveFile = true
+    //**************************************************************
+    //*** Build Column 1: Emails / WAN Targets
+    //**************************************************************
+        for line in range(windowStart, windowStart + windowSize - 1)
+            if __line_idx >= emailObjectList.len then break 
+            mail = emailObjectList[line]
+            if line == selectedIndex_Email then
+                row = "^".rotate("-90") + (mail.from.line_indent("0.5em"))
+                if typeof(mail.type) == "string" then row = row + mail.type.pos("18em")
+                outputBuffer_Inbox.push(row.bold.mark("#87CEFA2C"))
+            else              
+                outputBuffer_Inbox.push(str(mail.target_ip).line_indent("1em") + str(mail.type).pos("18em"))
             end if
-
-        //Load Open Router Backend for specified lib
-        print "[" + "*".color("Yellow") + "] " + "Loading file from " + exploitFile.path
-        exploitDataString = exploitFile.get_content
-        exploitDataList = (split(exploitDataString, char(10))).crop
-        reqList = []
-        
-
-        for exploit in exploitDataList
-            exploitInfo = split(exploit, ",")
-            exploitObject = {"classID": "exploitRequirments", "metaLibName":exploitInfo[0], "version":exploitInfo[1], "is_patched":to_int(exploitInfo[2]), "address":exploitInfo[3], "variable":to_int(exploitInfo[4]), "cra":to_int(exploitInfo[5]), "cga":to_int(exploitInfo[6]), "cua":to_int(exploitInfo[7]), "rur":to_int(exploitInfo[8]), "rpf":to_int(exploitInfo[9]), "objectType":exploitInfo[10], "privs":exploitInfo[11]}
-            reqList.push(exploitObject)
         end for
-        metaLibName = exploitFile.parent.name
-        metaLibVersion = exploitFile.name
-    print(("Lib Name" + "Version".pos("8em") + "Variable".pos("14em") + "Address".pos("25em") +  "AR".pos("35em") + "AU".pos("40em") + "AG".pos("45em") + "PF".pos("50em") + "UR".pos("55em") + "Type".pos("60em") + "Privs".pos("65em")).color("WhiteSmoke").underline)
-    for exploitFound in reqList
-        if haveFile == true then
-            print "[" + "*".color("DodgerBlue") + "] " + metaLibName.remove("lib").remove("sitory").remove("appliance").replace("trafficnet", "traffic").replace("metaxploit", "metax").replace("blockchain", "block").replace("kernel_", "ker_") + (exploitFound.version).pos("8em") + (exploitFound.variable).size("65%").pos("14em") + (exploitFound.address).size("65%").pos("25em") + (bool_text(exploitFound.cra, ["true", "false"], ["red","green"])).pos("35em") + (bool_text(exploitFound.cua, ["true", "false"], ["red","green"])).pos("40em") + (bool_text(exploitFound.cga, ["true", "false"], ["red","green"])).pos("45em") + (str(exploitFound.rpf)).pos("50em") + (str(exploitFound.rur)).pos("55em") + (exploitFound.objectType).pos("60em") + (exploitFound.privs).pos("65em")
-        else
-            print "[" + "*".color("DodgerBlue") + "] " + metaLibName + (exploitFound.version).pos("8em") + (exploitFound.variable).size("65%").pos("14em") + (exploitFound.address).size("65%").pos("25em") + (bool_text(exploitFound.cra, ["true", "false"], ["red","green"])).pos("35em") + (bool_text(exploitFound.cua, ["true", "false"], ["red","green"])).pos("40em") + (bool_text(exploitFound.cga, ["true", "false"], ["red","green"])).pos("45em") + (str(exploitFound.rpf)).pos("50em") + (str(exploitFound.rur)).pos("55em") + str(exploitFound.objectType).pos("60em") + str(exploitFound.privs).pos("65em")
-        end if
-        wait(0.1)
-        //print metaLibName.pos("1em") + exploitFound.variable + " @ " + exploitFound.address  + char(09) + "<color=white>MetaLib: ".bold + char(09) + "<color=white>Version: ".bold + exploitFound.version + char(09) + "<color=white>Patched: ".bold + bool_text(exploitFound.is_patched, ["true", "false"], ["red","green"])
+
+    //**************************************************************
+    //*** Build Column 2: LAN Devices
+    //**************************************************************
+        for i in range(0, outputBuffer_Inbox.len - 1)
+            lIdx = i + windowStart2
+            if lIdx >= targetLanIPList.len then break
+            lanVal = str(targetLanIPList[lIdx])
+            if selectedIndex_Window >= 1 and lIdx == selectedIndex_Lan then
+                outputBuffer_Inbox[i] = outputBuffer_Inbox[i] + lanVal.mark("#00BFFF3C").pos("28em")
+            else
+                outputBuffer_Inbox[i] = outputBuffer_Inbox[i] + lanVal.pos("28em")
+            end if
+        end for
+
+    //**************************************************************
+    //*** Build Column 3: Port Selection & Database Check
+    //**************************************************************
+        selectedLib = ""
+        selectedVer = ""
+        for i in range(0, outputBuffer_Inbox.len - 1)
+            pIdx = i + windowStart3
+            if pIdx >= lanDevicePortObjectList.len then break
+            
+            portObj = lanDevicePortObjectList[pIdx]
+            pNum = str(portObj.port_number)
+            pStat = "open"
+            if portObj.is_closed then pStat = "closed"
+            
+            pServInfo = targetRouter.port_info(portObj)
+            servParts = pServInfo.split(" ")
+            
+            if selectedIndex_Window >= 2 and pIdx == selectedIndex_Port then
+                selectedLib = servParts[0]
+                if servParts.len > 1 then selectedVer = servParts[1]
+                pData = pNum.pos("41em") + pStat.pos("47em") + pServInfo.pos("53em")
+                outputBuffer_Inbox[i] = outputBuffer_Inbox[i] + pData.mark("#00FF003C")
+            else
+                pData = pNum.pos("41em") + pStat.pos("47em") + pServInfo.pos("53em")
+                outputBuffer_Inbox[i] = outputBuffer_Inbox[i] + pData
+            end if
+        end for
+
+    //**************************************************************
+    //*** Construct UI Headers & Database Area
+    //**************************************************************
+        opt1 = "F1".color("White").bold + "Inbox"
+        opt2 = "F2".color("White").bold + "Stealth"
+        opt3 = "F3".color("White").bold + "File Explorer"
+        opt4 = "F4".color("White").bold + "Update Database"
+        opt5 = "F5".color("White").bold + "Open Website"
+        opt6 = "F6".color("White").bold + "Local Router"
         
-        //print((bool_text(exploitFound.cra, ["true", "false"], ["red","green"])).pos("8em") + (bool_text(exploitFound.cua, ["true", "false"], ["red","green"])).pos("14em") + (bool_text(exploitFound.cga, ["true", "false"], ["red","green"])).pos("20em") + (bool_text(exploitFound.rpf, ["true", "false"], ["red","green"])).pos("26em") + (bool_text(exploitFound.rur, ["true", "false"], ["red","green"])).pos("32em"))
-    end for
+        outputBuffer_MainMenu.push((opt1.pos("0em") + opt2.pos("5em") + opt3.pos("11em") + opt4.pos("21em") + opt5.pos("32em") + opt6.pos("41em")).mark("#00BFFF3C") + myComputer.local_ip.bold.pos("55em") + " -> " + myComputer.network_gateway.italic.pos("70em") + " -> " + myComputer.public_ip.bold.pos("85em") + " -> ")
+        
+        row2 = "PgUp".color("White").bold.pos("0em") + "Up" + "PgDn".color("White").bold.pos("5em") + "Down" + "Target Wan".color("WhiteSmoke").bold.pos("65em") + "Target LAN".color("WhiteSmoke").bold.pos("75em") + "Target User".color("WhiteSmoke").bold.pos("85em")
+        if typeof(targetRouter) == "router" then row2 = row2.mark("#00BFFF3C") + targetRouter.bssid_name.pos("95em")
+        outputBuffer_MainMenu.push(row2)
+
+        elapsed = time - startTime
+        header = ("Target/From".color("WhiteSmoke").bold.pos("0em") + "Type".color("WhiteSmoke").bold.pos("18em") + "LAN Devices".color("WhiteSmoke").bold.pos("28em") + "Port".color("WhiteSmoke").bold.pos("41em") + "State".color("WhiteSmoke").bold.pos("47em") + "Services".color("WhiteSmoke").bold.pos("53em") + str(targetIP).pos("65em") + str(targetLan).pos("75em") + str(targetUser).pos("85em") + (elapsed + "ms").pos("100em")).mark("#00BFFF3C")
+        
+        outputStaging.push(outputBuffer_MainMenu[0])
+        outputStaging.push(outputBuffer_MainMenu[1])
+        outputStaging.push(header)
+        for row in outputBuffer_Inbox
+            outputStaging.push(row)
+        end for
+        outputStaging.push("-" * 125)
+
+        // Indented Database Section
+        if selectedLib != "" then
+            outputStaging.push(" LOCAL EXPLOIT DATABASE: ".bold + translate_serviceInfo(selectedLib) + " (" + selectedVer + ")".mark("#4B00822C"))
+            exploits = checkLocalExploits(translate_serviceInfo(selectedLib), selectedVer)
+            if exploits == null then
+                outputStaging.push("No local database entries found.".color("Grey").line_indent("2em"))
+            else
+                for exp in exploits
+                    status = "READY".color("Green")
+                    if exp.is_patched == "1" then status = "PATCHED".color("Red")
+                    expRow = "-> ".color("Cyan") + "Mem: " + exp.mem.color("Yellow") + " | " + exp.var.color("Coral") + " | Returns: " + exp.returns.bold + " | Access: " + (exp.privilege.upper).nullToUnknown.color("Orange") + " | Status: " + status
+                    if __exp_idx == selectedIndex_Exploit then
+                        outputStaging.push(expRow.line_indent("2em").mark("#4B00822C"))
+                    else
+                        outputStaging.push(expRow.line_indent("2em"))
+                    end if
+                end for
+            end if
+        else
+            //outputStaging.push("Navigation: [Arrows] Change Window | [PgUp/PgDn] Scroll List | [Esc] Exit".color("Gray"))
+        end if
+        
+        outputStaging.push("*" * 125)
+        print(outputStaging.join(char(10)), true)
+
+    //**************************************************************
+    //*** Handle User Input & Navigation
+    //**************************************************************
+        userInput = user_input("", false, true)
+        selectedIndex_Window = user_navigation(selectedIndex_Window, userInput, ["LeftArrow", "RightArrow"]).clamp(0, 3)
+
+        if selectedIndex_Window == 0 then
+            selectedIndex_Email = user_navigation(selectedIndex_Email, userInput, ["PageUp", "PageDown"]).clamp(0, emailObjectList.len - 1)
+        else if selectedIndex_Window == 1 then
+            lLim = targetLanIPList.len - 1
+            if lLim < 0 then lLim = 0
+            selectedIndex_Lan = user_navigation(selectedIndex_Lan, userInput, ["PageUp", "PageDown"]).clamp(0, lLim)
+        else if selectedIndex_Window == 2 then
+            pLim = lanDevicePortObjectList.len - 1
+            if pLim < 0 then pLim = 0
+            selectedIndex_Port = user_navigation(selectedIndex_Port, userInput, ["PageUp", "PageDown"]).clamp(0, pLim)
+        else if selectedIndex_Window == 3 then
+            rLim = exploits.len - 1
+            if rLim < 0 then rLim = 0
+            selectedIndex_Exploit = user_navigation(selectedIndex_Exploit, userInput, ["PageUp", "PageDown"]).clamp(0, rLim)            
+            //Get Netssion for Target
+                if userInput == "Insert" then
+                    metax = load_lib("metaxploit.so", "/lib", "MetaxploitLib")
+                    targetPort = lanDevicePortObjectList[selectedIndex_Port].port_number
+                    if targetPort == 8080 then targetPort = 0
+                    netSession = metax.net_use(targetIP, targetPort)
+                    metaLib = netSession.dump_lib
+                    overflowResult = metaLib.overflow(exploits[selectedIndex_Exploit].mem, exploits[selectedIndex_Exploit].var)
+                    if typeof(overflowResult) == "shell" then
+                        overflowResult.launch("scp", "-u /opt/insight/bin/insight /bin/insight")
+                    end if
+                    if typeof(overflowResult) == "computer" then
+                        //clear_screen    
+                        print("*"*30)
+                        print char(09) + "Targeting: " + metaLib.lib_name + " v" + metaLib.version + " from " + targetIP + ":" + targetPort
+                        print char(09) + "Using:     " + exploits[selectedIndex_Exploit].var + " @ " + exploits[selectedIndex_Exploit].mem
+                        print("*"*30)
+                        print "<u><b><color=white><mark=#228B224E>Computer</mark></color></b> Object Obtained from <b>" + get_object_owner(overflowResult) + "</b> account</u>"
+                            print("*"*30)
+                            print char(09) + "<color=white>Name    : ".bold + overflowResult.get_name 
+                            print char(09) + "<color=white>Net Card: ".bold + overflowResult.active_net_card
+                            print char(09) + "<color=white>Internet: ".bold + bool_text(overflowResult.is_network_active, ["true", "false"], ["green","red"])
+                            print("*"*30) 
+                            print (char(09) + "Public IP" + char(09)*2 + "Gateway" + char(09)*3 + "Local IP").color("WhiteSmoke")
+                            print char(09) + (overflowResult.public_ip).color("LawnGreen") + " -> " + (overflowResult.network_gateway).color("MediumSpringGreen") + " -> " + (overflowResult.local_ip).color("GreenYellow")
+                            activePorts = overflowResult.get_ports
+                            for port in activePorts
+                                print char(09)*10 + "* " + port.port_number + char(09) + bool_text(port.is_closed,["closed","open"], ["red", "green"])
+                            end for           
+                            print("*"*30)
+                        //print overflowResult.network_devices
+                        //print overflowResult.wifi_networks(split(overflowResult.active_net_card, " ")[0])
+                        if (overflowResult.File("/etc/passwd")).has_permission("r") then
+                            passwdFile = (overflowResult.File("/etc/passwd")).get_content
+                            if passwdFile then
+                                print char(09) + "Passwd Access Granted".color("LimeGreen")
+                                print("*"*30)
+                                accounts = split(trim(passwdFile),char(10))
+                                crypto = load_lib("crypto.so")
+                                for account in accounts
+                                    print char(09) + account
+                                end for
+                                print("*"*30)
+                                //Change this to send to rainbow file queue
+                                print char(09) + "Attempting to Decipher".color("LimeGreen")            
+                                print("*"*30)
+                                for account in accounts
+                                    acctInfo = split(account,":")
+                                    password = crypto.decipher(acctInfo[1])
+                                    print char(09) + acctInfo[0] + ":" + password.bold
+                                end for
+                                print("*"*30)
+                            end if
+                        else
+                            print char(09) + "Passwd Access Denied".color("Crimson")
+                            print("*"*30)
+                        end if
+                    end if
+                    if typeof(overflowResult) == "file" then
+                        readableFiles = []
+                        if is_folder(overflowResult) then
+                            print("Folder " + overflowResult.name + " obtained from user <b>" + overflowResult.owner + "</b>")
+                            print("<u><b>File List<b></u>")
+                            myComputer = get_shell.host_computer
+                            myFiles = overflowResult.get_files
+                            print "File Name" + " " + "<pos=15em>Permissions" + "<pos=25em>Size" + "<pos=30em>Read" + "<pos=35em>Write" + "<pos=40em>Execute" + "<pos=45em>Owner" + "<pos=50em>SymLink"
+                            for file in myFiles
+                                print char(09) + "<color=white>" + file.name + " " + "<pos=15em>" + file.permissions + "<pos=25em>" + file.size + "<pos=30em>" + bool_text(file.has_permission("r")) + "<pos=35em>" + bool_text(file.has_permission("w")) + "<pos=40em>" + bool_text(file.has_permission("x")) + "<pos=45em>" + file.owner + "<pos=50em>" + bool_text(file.is_symlink)
+                            end for        
+                        end if
+                    end if
+                    wait(5)
+                end if
+        end if
+    //**************************************************************
+    //*** Calculate Scroll Bounds
+    //**************************************************************
+        if selectedIndex_Window == 0 then
+            if selectedIndex_Email < windowStart then
+                windowStart = selectedIndex_Email
+            else if selectedIndex_Email >= windowStart + windowSize then
+                windowStart = selectedIndex_Email - (windowSize - 1)
+            end if
+        else if selectedIndex_Window == 1 then
+            if selectedIndex_Lan < windowStart2 then
+                windowStart2 = selectedIndex_Lan
+            else if selectedIndex_Lan >= windowStart2 + windowSize then
+                windowStart2 = selectedIndex_Lan - (windowSize - 1)
+            end if
+        else if selectedIndex_Window == 2 then
+            if selectedIndex_Port < windowStart3 then
+                windowStart3 = selectedIndex_Port
+            else if selectedIndex_Port >= windowStart3 + windowSize then
+                windowStart3 = selectedIndex_Port - (windowSize - 1)
+            end if
+       else if selectedIndex_Window == 3 then
+            if selectedIndex_Exploit < windowStart4 then
+                windowStart4 = selectedIndex_Exploit
+            else if selectedIndex_Exploit >= windowStart4 + windowSize then
+                windowStart4 = selectedIndex_Exploit - (windowSize - 1)
+            end if            
+        end if
+        
+        wait(0.03)
+end while
